@@ -1,14 +1,14 @@
 locals {
   # Filter services that expose a HTTP port
   http_services = {
-    for service_name, service in local.services:
+    for service_name, service in var.services:
     service_name => service
     if service.http != null
   }
 
   # Map service names to target group names
   target_group_names = {
-    for service_name in keys(local.services):
+    for service_name in keys(var.services):
     service_name => "${local.common_name}-${service_name}"
   }
 }
@@ -53,7 +53,11 @@ resource "aws_lb_listener_rule" "main" {
   for_each = {
     for rule in flatten([
       for service_name, service in local.http_services: [
-        for combo in setproduct([service_name], service.http.hostnames, service.http.paths):
+        for combo in setproduct(
+          [service_name],
+          service.http.hostnames,
+          coalesce(service.http.paths, ["*"]),  # Default to * (any path)
+        ):
         zipmap(["service_name", "hostname", "path"], combo)
       ]
     ]): ("${rule.service_name}-${rule.hostname}-${rule.path}") => rule
