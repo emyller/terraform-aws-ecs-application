@@ -45,6 +45,10 @@ resource "aws_launch_template" "main" {
     cluster_name = var.cluster_name,
   }))
 
+  iam_instance_profile {
+    name = aws_iam_instance_profile.nodes.name
+  }
+
   tag_specifications {
     resource_type = "instance"
     tags = { "Name" = var.cluster_name }
