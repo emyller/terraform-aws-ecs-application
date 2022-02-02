@@ -61,6 +61,9 @@ data "aws_iam_policy_document" "pull_ecr_image" {
 data "aws_iam_policy_document" "get_secrets" {
   statement {
     actions = ["secretsmanager:GetSecretValue"]
-    resources = values(var.secrets)  # ARNs only
+    resources = [
+      for env_var_name in keys(var.secrets):
+      data.aws_secretsmanager_secret.services[env_var_name].arn
+    ]
   }
 }

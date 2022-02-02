@@ -22,3 +22,8 @@ data "aws_ecr_repository" "services" {
   for_each = local.ecr_image_names
   name = each.value
 }
+
+data "aws_secretsmanager_secret" "services" {
+  for_each = var.secrets
+  name = each.value
+}

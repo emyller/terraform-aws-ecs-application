@@ -27,7 +27,7 @@ variable "environment_variables" {
 variable "secrets" {
   description = <<EOT
     A map of secrets to inject in the containers as environment variables.
-    e.g. {"VARIABLE" = "arn:aws:secretsmanager:..."}
+    e.g. {"VARIABLE" = "secret-name"}
   EOT
   type = map(string)
   default = {}
