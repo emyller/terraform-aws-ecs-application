@@ -18,6 +18,21 @@ variable "instance_key_name" {
   type = string
 }
 
+variable "environment_variables" {
+  description = "A map of environment variables to inject in the containers."
+  type = map(string)
+  default = {}
+}
+
+variable "secrets" {
+  description = <<EOT
+    A map of secrets to inject in the containers as environment variables.
+    e.g. {"VARIABLE" = "arn:aws:secretsmanager:..."}
+  EOT
+  type = map(string)
+  default = {}
+}
+
 variable "services" {
   description = "A mapping of services to deploy in the cluster."
   type = map(object({
@@ -26,8 +41,6 @@ variable "services" {
     desired_count = number
     memory = number
     command = optional(list(string))
-    environment_variables = optional(map(string))
-    secrets = optional(map(string))
     http = optional(object({
       hostnames = list(string)
       paths = optional(list(string))
