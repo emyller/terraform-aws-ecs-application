@@ -8,4 +8,5 @@ data "aws_subnet" "any" {
 
 locals {
   vpc_id = data.aws_subnet.any.vpc_id
+  common_name = var.cluster_name  # Common name to use in most objects
 }

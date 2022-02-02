@@ -18,9 +18,9 @@ locals {
 
 resource "aws_autoscaling_group" "main" {
   /*
-  The Auto Scaling Group to launch EC2 nodes
+  The Auto Scaling Group to launch ECS instances
   */
-  name = var.cluster_name
+  name = local.common_name
   min_size = 1
   max_size = 10
   desired_capacity = 1
@@ -34,9 +34,9 @@ resource "aws_autoscaling_group" "main" {
 
 resource "aws_launch_template" "main" {
   /*
-  The Launch Template to launch EC2 nodes
+  The Launch Template to launch ECS instances
   */
-  name = var.cluster_name
+  name = local.common_name
   image_id = data.aws_ami.ecs.id
   instance_type = var.instance_type
   key_name = var.instance_key_name
@@ -46,18 +46,18 @@ resource "aws_launch_template" "main" {
   }))
 
   iam_instance_profile {
-    name = aws_iam_instance_profile.nodes.name
+    name = aws_iam_instance_profile.ecs_instance.name
   }
 
   tag_specifications {
     resource_type = "instance"
-    tags = { "Name" = var.cluster_name }
+    tags = { "Name" = local.common_name }
   }
 
   network_interfaces {
     associate_public_ip_address = false
     security_groups = [
-      module.security_group_ec2_nodes.id,
+      module.security_group_ecs_instances.id,
     ]
   }
 
@@ -75,13 +75,13 @@ resource "aws_launch_template" "main" {
   }
 }
 
-module "security_group_ec2_nodes" {
+module "security_group_ecs_instances" {
   /*
   The security group to wrap EC2 instances in HTTP services
   */
   source = "app.terraform.io/continuum/security-group/aws"
   version = "~> 1.0"
-  name = "i-${var.cluster_name}"
+  name = "i-${local.common_name}"
   vpc_id = local.vpc_id
   allow_self_ingress = true
   # TODO: ingress rules

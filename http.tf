@@ -1,8 +1,15 @@
 locals {
+  # Filter services that expose a HTTP port
   http_services = {
     for service_name, service in local.services:
     service_name => service
     if service.http != null
+  }
+
+  # Map service names to target group names
+  target_group_names = {
+    for service_name in keys(local.services):
+    service_name => "${local.common_name}-${service_name}"
   }
 }
 
@@ -12,7 +19,7 @@ resource "aws_lb_target_group" "http" {
   */
   for_each = local.http_services
   vpc_id = local.vpc_id
-  name = each.value.target_group_name
+  name = local.target_group_names[each.key]
   port = each.value.http.port
   protocol = "HTTP"
   target_type = "instance"

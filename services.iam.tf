@@ -1,12 +1,12 @@
 locals {
   # Map service names to IAM role names
-  services_iam_role_names = {
+  ecs_agent_iam_role_names = {
     for service_name in keys(local.services):
-    service_name => "ecs-${var.cluster_name}-${service_name}"
+    service_name => "ecs-${local.common_name}-${service_name}"
   }
 }
 
-resource "aws_iam_role" "agents" {
+resource "aws_iam_role" "ecs_agent" {
   /*
   Role to be assumed by the ECS agent in each ECS instance
 
@@ -16,8 +16,8 @@ resource "aws_iam_role" "agents" {
     environment variables (if any).
   */
   for_each = local.services
-  name = local.services_iam_role_names[each.key]
-  assume_role_policy = data.aws_iam_policy_document.agents_assume.json
+  name = local.ecs_agent_iam_role_names[each.key]
+  assume_role_policy = data.aws_iam_policy_document.ecs_agent_assume.json
 
   # Permission to fetch a Docker image from Elastic Container Registry
   dynamic "inline_policy" {
@@ -38,7 +38,7 @@ resource "aws_iam_role" "agents" {
   }
 }
 
-data "aws_iam_policy_document" "agents_assume" {
+data "aws_iam_policy_document" "ecs_agent_assume" {
   statement {
     actions = ["sts:AssumeRole"]
 
