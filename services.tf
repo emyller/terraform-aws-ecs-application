@@ -10,6 +10,7 @@ locals {
   docker_image_addresses = {
     for service_name, service in var.services:
     service_name => {
+      "dockerhub" = "docker.io/${service.docker.image_name}"
       "ecr" = try(data.aws_ecr_repository.services[service_name].repository_url, null)
     }[service.docker.source]
   }
