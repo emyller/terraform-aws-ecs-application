@@ -8,16 +8,6 @@ variable "subnets" {
   type = list(string)
 }
 
-variable "instance_type" {
-  description = "The instance type of the EC2 hosts to spin up."
-  type = string
-}
-
-variable "instance_key_name" {
-  description = "The SSH key name in EC2 to manually connect to hosts."
-  type = string
-}
-
 variable "environment_variables" {
   description = "A map of environment variables to inject in the containers."
   type = map(string)
