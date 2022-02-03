@@ -49,7 +49,11 @@ variable "services" {
       paths = optional(list(string))
       port = number
       listener_arn = string
-      health_check = object({ path = string, status_codes = list(number) })
+      health_check = object({
+        path = string,
+        status_codes = list(number)
+        grace_period_seconds = optional(number)
+      })
     }))
   }))
 

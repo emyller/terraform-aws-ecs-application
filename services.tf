@@ -82,6 +82,12 @@ resource "aws_ecs_service" "main" {
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent = 200
 
+  # Allow HTTP services to warm up before responding to health checks
+  health_check_grace_period_seconds = try(
+    coalesce(each.value.http.health_check.grace_period_seconds, 180),
+    null,
+  )
+
   ordered_placement_strategy {
     type = "spread"
     field = "attribute:ecs.availability-zone"
