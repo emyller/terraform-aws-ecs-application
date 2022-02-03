@@ -36,11 +36,14 @@ variable "secrets" {
 variable "services" {
   description = "A mapping of services to deploy in the cluster."
   type = map(object({
-    ecr_image_name = string
-    docker_image_tag = string
     desired_count = number
     memory = number
     command = optional(list(string))
+    docker = object({
+      image_name = string
+      image_tag = string
+      source = string
+    })
     http = optional(object({
       hostnames = list(string)
       paths = optional(list(string))
@@ -49,4 +52,12 @@ variable "services" {
       health_check = object({ path = string, status_codes = list(number) })
     }))
   }))
+
+  validation {
+    condition = length(setsubtract(
+      values(var.services)[*].docker.source,
+      ["ecr"],
+    )) == 0
+    error_message = "The 'var.services[*].docker.source' must be one of: [ecr]."
+  }
 }
