@@ -16,13 +16,22 @@ locals {
   }
 
   # Group containers if asked
+  # Organize
+  # GROUPED: { group_name: { service1, service2, service3, ... }
+  # NORMAL: { service1: { service1 }, service2: { service2 }, ... }
   grouped_services = (var.group_containers ? {
     # All containers grouped in one service
-    (local.common_name) = var.services
+    (local.common_name) = {
+      family_name = local.common_name
+      containers = var.services
+    }
   } : {
     # Each container to each service
     for service_name, service in var.services:
-    ("${local.common_name}-${service_name}") => { (service_name) = service }
+    (service_name) => {
+      family_name = "${local.common_name}-${service_name}"
+      containers = { (service_name) = service }
+    }
   })
 }
 
@@ -45,12 +54,12 @@ resource "aws_ecs_task_definition" "main" {
   A task definition for each service in the application
   */
   for_each = local.grouped_services
-  family = each.key
+  family = each.value.family_name
   network_mode = "bridge"
   execution_role_arn = aws_iam_role.ecs_agent.arn
 
   container_definitions = jsonencode([
-    for service_name, service in each.value:
+    for service_name, service in each.value.containers:
     merge({
       image = "${local.docker_image_addresses[service_name]}:${service.docker.image_tag}"
       name = service_name
@@ -103,12 +112,12 @@ resource "aws_ecs_service" "main" {
   deployment_maximum_percent = 200
 
   # When grouping containers in a single service, desired count needs to be 1
-  desired_count = var.group_containers ? 1 : one(values(each.value)).desired_count
+  desired_count = var.group_containers ? 1 : one(values(each.value.containers)).desired_count
 
   # Allow HTTP services to warm up before responding to health checks
   health_check_grace_period_seconds = (
-    anytrue([for service in values(each.value): service.http != null])
-    ? max(180, compact([for service in values(each.value): try(service.http.health_check.grace_period_seconds, 0)])...)
+    anytrue([for service in values(each.value.containers): service.http != null])
+    ? max(180, compact([for service in values(each.value.containers): try(service.http.health_check.grace_period_seconds, 0)])...)
     : null  # No HTTP service
   )
 
@@ -120,7 +129,7 @@ resource "aws_ecs_service" "main" {
   dynamic "load_balancer" {
     iterator = target_service
     for_each = {
-      for service_name, service in each.value:
+      for service_name, service in each.value.containers:
       service_name => service
       if service.http != null
     }
