@@ -14,6 +14,16 @@ locals {
       "ecr" = try(data.aws_ecr_repository.services[service_name].repository_url, null)
     }[service.docker.source]
   }
+
+  # Group containers if asked
+  grouped_services = (var.group_containers ? {
+    # All containers grouped in one service
+    (local.common_name) = var.services
+  } : {
+    # Each container to each service
+    for service_name, service in var.services:
+    ("${local.common_name}-${service_name}") => { (service_name) = service }
+  })
 }
 
 data "aws_ecs_cluster" "main" {
@@ -34,17 +44,18 @@ resource "aws_ecs_task_definition" "main" {
   /*
   A task definition for each service in the application
   */
-  for_each = var.services
-  family = "${local.common_name}-${each.key}"
+  for_each = local.grouped_services
+  family = each.key
   network_mode = "bridge"
   execution_role_arn = aws_iam_role.ecs_agent.arn
 
   container_definitions = jsonencode([
+    for service_name, service in each.value:
     merge({
-      image = "${local.docker_image_addresses[each.key]}:${each.value.docker.image_tag}"
-      name = each.key
+      image = "${local.docker_image_addresses[service_name]}:${service.docker.image_tag}"
+      name = service_name
       essential = true
-      memoryReservation = each.value.memory
+      memoryReservation = service.memory
       environment = [
         for env_var_name, value in var.environment_variables:
         { name = env_var_name, value = value }
@@ -56,37 +67,49 @@ resource "aws_ecs_task_definition" "main" {
     },
 
     # Publish ports only if intended
-    each.value.http == null ? {} : {
+    service.http == null ? {} : {
       portMappings = [{
         protocol = "tcp"
-        containerPort = each.value.http.port
+        containerPort = service.http.port
         hostPort = 0  # Dynamic port
       }]
     },
 
+    # Link containers to each other
+    # https://docs.docker.com/network/links/
+    !var.group_containers ? {} : {
+      links = [
+        for other_service_name in setsubtract(keys(each.value), [service_name]):
+        "${other_service_name}:${other_service_name}"
+      ]
+    },
+
     # Append a command only if it's set
-    each.value.command == null ? {} : {
-      command = each.value.command
+    service.command == null ? {} : {
+      command = service.command
     })
   ])
 }
 
 resource "aws_ecs_service" "main" {
-  for_each = var.services
-  name = "${local.common_name}-${each.key}"
+  for_each = local.grouped_services
+  name = each.key
   cluster = data.aws_ecs_cluster.main.id
   task_definition = "${aws_ecs_task_definition.main[each.key].family}:${aws_ecs_task_definition.main[each.key].revision}"
-  desired_count = each.value.desired_count
   launch_type = "EC2"
   scheduling_strategy = "REPLICA"
   force_new_deployment = true
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent = 200
 
+  # When grouping containers in a single service, desired count needs to be 1
+  desired_count = var.group_containers ? 1 : one(values(each.value)).desired_count
+
   # Allow HTTP services to warm up before responding to health checks
-  health_check_grace_period_seconds = try(
-    coalesce(each.value.http.health_check.grace_period_seconds, 180),
-    null,
+  health_check_grace_period_seconds = (
+    anytrue([for service in values(each.value): service.http != null])
+    ? max(180, compact([for service in values(each.value): try(service.http.health_check.grace_period_seconds, 0)])...)
+    : null  # No HTTP service
   )
 
   ordered_placement_strategy {
@@ -95,11 +118,16 @@ resource "aws_ecs_service" "main" {
   }
 
   dynamic "load_balancer" {
-    for_each = each.value.http == null ? [] : [true]
+    iterator = target_service
+    for_each = {
+      for service_name, service in each.value:
+      service_name => service
+      if service.http != null
+    }
     content {
-      target_group_arn = aws_lb_target_group.http[each.key].arn
-      container_name = each.key
-      container_port = each.value.http.port
+      target_group_arn = aws_lb_target_group.http[target_service.key].arn
+      container_name = target_service.key
+      container_port = target_service.value.http.port
     }
   }
 }

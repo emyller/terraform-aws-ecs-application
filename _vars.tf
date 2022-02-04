@@ -15,12 +15,22 @@ variable "environment_variables" {
 }
 
 variable "secrets" {
-  description = <<EOT
+  description = <<-EOT
     A map of secrets to inject in the containers as environment variables.
     e.g. {"VARIABLE" = "secret-name"}
   EOT
   type = map(string)
   default = {}
+}
+
+variable "group_containers" {
+  description = <<-EOT
+    Whether to group all containers into a single service in ECS.
+    This implicitly sets desired_count to 1 globally.
+    Useful for non-production or test environments.
+  EOT
+  type = bool
+  default = false
 }
 
 variable "services" {
