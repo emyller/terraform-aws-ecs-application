@@ -48,7 +48,7 @@ variable "services" {
       hostnames = list(string)
       paths = optional(list(string))
       port = number
-      listener_arn = string
+      load_balancer_name = string
       health_check = object({
         path = string,
         status_codes = list(number)
