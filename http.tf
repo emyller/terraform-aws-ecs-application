@@ -81,11 +81,7 @@ resource "aws_lb_listener_rule" "main" {
   */
   for_each = local.load_balancer_rules_combinations
   listener_arn = local.listener_arns[each.value.service_name]
-
-  # Assign a priority according to specificity
-  priority = each.value.path == "*" ? (
-    random_integer.rule_priority_star_path[each.key].result
-  ) : null
+  priority = random_integer.rule_priority[each.key].result
 
   action {
     type = "forward"
@@ -101,22 +97,20 @@ resource "aws_lb_listener_rule" "main" {
   }
 }
 
-resource "random_integer" "rule_priority_star_path" {
+resource "random_integer" "rule_priority" {
   /*
-  A number to manage the priority numbers to use in ALB rules
+  A number to manage the priority numbers to use in ALB rules without a path
 
   ALBv2 does not sort rules by specificity; rather, it sorts them by a priority
   number from 1 to 50000. Also, the default limit of rules per listener is 100.
-  This resource manages a random number in the last 30000 positions to try and
-  keep generic rules (path = *) last in the list of rules.
+  This resource manages a random number in the first 40000 positions for rules
+  with paths, or in the remaining 10000 for rules without any path.
 
-  More: https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-rules.html
+  More:
+  https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-rules.html
   */
-  for_each = {
-    for rule_id, rule in local.load_balancer_rules_combinations:
-    rule_id => rule if rule.path == "*"  # Rules without a path defined
-  }
-  min = 20000
-  max = 50000
+  for_each = local.load_balancer_rules_combinations
+  min = each.value.path == "*" ? 41000 : 1
+  max = each.value.path == "*" ? 50000 : 40000
   keepers = { listener_arn = data.aws_lb_listener.https[each.value.load_balancer_name].arn }
 }
