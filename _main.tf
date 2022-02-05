@@ -2,6 +2,9 @@ terraform {
   experiments = [module_variable_optional_attrs]
 }
 
+data "aws_region" "current" {
+}
+
 data "aws_subnet" "any" {
   id = var.subnets[0]
 }

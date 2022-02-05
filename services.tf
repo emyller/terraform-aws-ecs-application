@@ -73,6 +73,14 @@ resource "aws_ecs_task_definition" "main" {
         for env_var_name, secret_name in var.secrets:
         { name = env_var_name, valueFrom = data.aws_secretsmanager_secret.services[env_var_name].arn }
       ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          "awslogs-group" = aws_cloudwatch_log_group.main[service_name].name
+          "awslogs-region" = data.aws_region.current.name
+          "awslogs-stream-prefix" = "ecs"
+        }
+      }
     },
 
     # Publish ports only if intended
