@@ -1,3 +1,13 @@
+variable "application_name" {
+  description = "The name of the application."
+  type = string
+}
+
+variable "environment_name" {
+  description = "The name of the environment."
+  type = string
+}
+
 variable "cluster_name" {
   description = "The name of the cluster to plug this application in."
   type = string

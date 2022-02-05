@@ -7,7 +7,7 @@ resource "aws_iam_role" "ecs_agent" {
   - Fetch secrets from Secrets Manager and inject them in containers as
     environment variables (if any).
   */
-  name = "ecs-${local.common_name}"
+  name = "ecs-${var.application_name}-${var.environment_name}"
   assume_role_policy = data.aws_iam_policy_document.ecs_agent_assume.json
 
   # Permission to fetch a Docker image from Elastic Container Registry
