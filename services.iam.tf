@@ -9,24 +9,6 @@ resource "aws_iam_role" "ecs_agent" {
   */
   name = "ecs-${var.application_name}-${var.environment_name}"
   assume_role_policy = data.aws_iam_policy_document.ecs_agent_assume.json
-
-  # Permission to fetch a Docker image from Elastic Container Registry
-  dynamic "inline_policy" {
-    for_each = length(local.ecr_image_names) > 0 ? [true] : []
-    content {
-      name = "pull-ecr-image"
-      policy = data.aws_iam_policy_document.pull_ecr_image.json
-    }
-  }
-
-  # Permission to fetch secrets from Secrets Manager
-  dynamic "inline_policy" {
-    for_each = length(var.secrets) > 0 ? [true] : []
-    content {
-      name = "get-secrets"
-      policy = data.aws_iam_policy_document.get_secrets.json
-    }
-  }
 }
 
 data "aws_iam_policy_document" "ecs_agent_assume" {
