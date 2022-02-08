@@ -39,31 +39,3 @@ data "aws_iam_policy_document" "ecs_agent_assume" {
     }
   }
 }
-
-data "aws_iam_policy_document" "pull_ecr_image" {
-  statement {
-    actions = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-
-  statement {
-    actions = [
-      "ecr:BatchGetImage",
-      "ecr:GetDownloadUrlForLayer",
-    ]
-    resources = [
-      for service_name in keys(local.ecr_image_names):
-      data.aws_ecr_repository.services[service_name].arn
-    ]
-  }
-}
-
-data "aws_iam_policy_document" "get_secrets" {
-  statement {
-    actions = ["secretsmanager:GetSecretValue"]
-    resources = [
-      for env_var_name in keys(var.secrets):
-      data.aws_secretsmanager_secret.services[env_var_name].arn
-    ]
-  }
-}
