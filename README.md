@@ -1,13 +1,14 @@
 # ecs-application
 
-Create and plug an application into an existing ECS cluster.
+A Terraform module to manage an application in AWS ECS.
 
 
-## Example
+## Usage example
 
 ```hcl
 module "application" {
-  source = "..."
+  source = "emyller/ecs-application/aws"
+  version = "~> 1.0"
 
   application_name = "acme-app"
   environment_name = "production"
