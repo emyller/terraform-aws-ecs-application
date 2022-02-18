@@ -5,7 +5,7 @@ locals {
   # NORMAL: { service1: { service1 }, service2: { service2 }, ... }
   grouped_services = (var.group_containers ? {
     # All containers grouped in one service
-    (local.common_name) = {
+    (var.application_name) = {
       family_name = local.common_name
       containers = var.services
     }
