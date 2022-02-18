@@ -70,7 +70,7 @@ resource "aws_ecs_task_definition" "main" {
     # https://docs.docker.com/network/links/
     !var.group_containers ? {} : {
       links = [
-        for other_service_name in setsubtract(keys(each.value), [service_name]):
+        for other_service_name in setsubtract(keys(each.value.containers), [service_name]):
         "${other_service_name}:${other_service_name}"
       ]
     },
