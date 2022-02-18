@@ -19,7 +19,10 @@ variable "subnets" {
 }
 
 variable "environment_variables" {
-  description = "A map of environment variables to inject in the containers."
+  description = <<-EOT
+    A map of environment variables to inject in the containers.
+    Environment variables set in services override this setting.
+  EOT
   type = map(string)
   default = {}
 }
@@ -27,6 +30,7 @@ variable "environment_variables" {
 variable "secrets" {
   description = <<-EOT
     A map of secrets to inject in the containers as environment variables.
+    Secrets set in services override this setting.
     e.g. {"VARIABLE" = "secret-name"}
   EOT
   type = map(string)
@@ -49,6 +53,8 @@ variable "services" {
     desired_count = number
     memory = number
     command = optional(list(string))
+    environment = optional(map(string))
+    secrets = optional(map(string))
     docker = object({
       image_name = string
       image_tag = string

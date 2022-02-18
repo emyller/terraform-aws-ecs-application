@@ -40,11 +40,11 @@ resource "aws_ecs_task_definition" "main" {
       essential = true
       memoryReservation = service.memory
       environment = [
-        for env_var_name, value in var.environment_variables:
+        for env_var_name, value in coalesce(service.environment, var.environment_variables):
         { name = env_var_name, value = value }
       ]
       secrets = [
-        for env_var_name, secret_name in var.secrets:
+        for env_var_name, secret_name in coalesce(service.secrets, var.secrets):
         { name = env_var_name, valueFrom = data.aws_secretsmanager_secret.services[env_var_name].arn }
       ]
       logConfiguration = {
