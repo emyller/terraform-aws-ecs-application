@@ -66,13 +66,10 @@ resource "aws_ecs_task_definition" "main" {
       }]
     },
 
-    # Link containers to each other
+    # Link containers to others they need
     # https://docs.docker.com/network/links/
-    !var.group_containers ? {} : {
-      links = [
-        for other_service_name in setsubtract(keys(each.value.containers), [service_name]):
-        "${other_service_name}:${other_service_name}"
-      ]
+    service.links == null ? {} : {
+      links = [for link in service.links: "${link}:${link}"]
     },
 
     # Append a command only if it's set

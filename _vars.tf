@@ -55,6 +55,7 @@ variable "services" {
     command = optional(list(string))
     environment = optional(map(string))
     secrets = optional(map(string))
+    links = optional(list(string))
     docker = object({
       image_name = string
       image_tag = string
