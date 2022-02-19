@@ -1,14 +1,30 @@
+locals {
+  # Collect a map of services and their secrets
+  service_secrets = {
+    for service_name, service in var.services:
+    (service_name) => {
+      for env_var_name, secret_name in coalesce(service.secrets, var.secrets):
+      ("${service_name}/${env_var_name}") => {
+        service_name = service_name
+        env_var_name = env_var_name
+        secret_name = secret_name
+      }
+    }
+  }
+  flattened_service_secrets = merge(values(local.service_secrets)...)
+}
+
 data "aws_secretsmanager_secret" "services" {
-  for_each = var.secrets
-  name = each.value
+  for_each = local.flattened_service_secrets
+  name = each.value.secret_name
 }
 
 data "aws_iam_policy_document" "get_secrets" {
   statement {
     actions = ["secretsmanager:GetSecretValue"]
     resources = [
-      for env_var_name in keys(var.secrets):
-      data.aws_secretsmanager_secret.services[env_var_name].arn
+      for service_secret in keys(local.flattened_service_secrets):
+      data.aws_secretsmanager_secret.services[service_secret].arn
     ]
   }
 }

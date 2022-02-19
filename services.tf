@@ -44,8 +44,10 @@ resource "aws_ecs_task_definition" "main" {
         { name = env_var_name, value = value }
       ]
       secrets = [
-        for env_var_name, secret_name in coalesce(service.secrets, var.secrets):
-        { name = env_var_name, valueFrom = data.aws_secretsmanager_secret.services[env_var_name].arn }
+        for service_secret, secret_info in local.service_secrets[service_name]: {
+          name = secret_info.env_var_name,
+          valueFrom = data.aws_secretsmanager_secret.services[service_secret].arn
+        }
       ]
       logConfiguration = {
         logDriver = "awslogs"
