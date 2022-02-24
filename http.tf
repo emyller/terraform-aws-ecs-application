@@ -62,6 +62,7 @@ resource "aws_lb_target_group" "http" {
   vpc_id = local.vpc_id
   name = local.target_group_names[each.key]
   port = each.value.http.port
+  deregistration_delay = 30
   protocol = "HTTP"
   target_type = "instance"
 
