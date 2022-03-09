@@ -26,7 +26,7 @@ module "application" {
       http = {
         port = 3005
         load_balancer_name = "production-web"
-        hostnames = ["app.example.com"]
+        listener_rule = { hostnames = ["app.example.com"] }
         health_check = { path = "/", status_codes = [200, 302] }
       }
     }
