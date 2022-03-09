@@ -70,7 +70,7 @@ variable "services" {
         headers = optional(map(list(string)))
         methods = optional(list(string))
         query_string = optional(map(string))
-        # source_ips = optional(list(string))
+        source_ips = optional(list(string))
       })
       health_check = object({
         path = string,

@@ -113,6 +113,14 @@ resource "aws_lb_listener_rule" "main" {
       }
     }
   }
+
+  # Source IP address CIDR blocks
+  dynamic "condition" {
+    for_each = each.value.http.listener_rule.source_ips == null ? [] : [true]
+    content {
+      source_ip { values = each.value.http.listener_rule.source_ips }
+    }
+  }
 }
 
 resource "random_integer" "rule_priority" {
@@ -130,12 +138,13 @@ resource "random_integer" "rule_priority" {
   for_each = {
     for service_name, service in local.http_services:
     service_name => merge(service, {
-      priority_level = 5 - sum([
+      priority_level = 6 - sum([
         service.http.listener_rule.hostnames == null ? 0 : 1,
         service.http.listener_rule.paths == null ? 0 : 1,
         service.http.listener_rule.headers == null ? 0 : 1,
         service.http.listener_rule.methods == null ? 0 : 1,
         service.http.listener_rule.query_string == null ? 0 : 1,
+        service.http.listener_rule.source_ips == null ? 0 : 1,
       ])
     })
   }
