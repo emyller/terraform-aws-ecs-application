@@ -67,7 +67,7 @@ variable "services" {
       listener_rule = object({
         hostnames = list(string)
         paths = optional(list(string))
-        headers = optional(map(string))
+        headers = optional(map(list(string)))
         # methods = optional(list(string))
         # query_string = optional(map(string))
         # source_ips = optional(list(string))

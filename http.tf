@@ -90,7 +90,7 @@ resource "aws_lb_listener_rule" "main" {
     content {
       http_header {
         http_header_name = condition.key
-        values = [condition.value]
+        values = condition.value
       }
     }
   }
