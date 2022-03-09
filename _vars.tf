@@ -62,10 +62,16 @@ variable "services" {
       source = string
     })
     http = optional(object({
-      hostnames = list(string)
-      paths = optional(list(string))
       port = number
       load_balancer_name = string
+      listener_rule = object({
+        hostnames = list(string)
+        paths = optional(list(string))
+        headers = optional(map(list(string)))
+        methods = optional(list(string))
+        query_string = optional(map(string))
+        source_ips = optional(list(string))
+      })
       health_check = object({
         path = string,
         status_codes = list(number)

@@ -12,24 +12,6 @@ locals {
     service_name => "${local.common_name}-${service_name}"
   }
 
-  # Create a recursive product of service_name + hostname + path for ALB rules
-  load_balancer_rules_combinations = {
-    for rule in flatten([
-      for service_name, service in local.http_services: [
-        for combo in setproduct(
-          [service_name],  # service_name
-          service.http.hostnames,  # hostname
-          coalesce(service.http.paths, ["*"]),  # path -- default to "*"
-        ): {
-          service_name = combo[0]
-          hostname = combo[1]
-          path = combo[2]
-          load_balancer_name = local.http_services[combo[0]].http.load_balancer_name
-        }
-      ]
-    ]): ("${rule.service_name}|${rule.hostname}|${rule.path}") => rule
-  }
-
   # Standard limit of rules per ALB listener
   rules_count_limit = 100
 
@@ -80,21 +62,64 @@ resource "aws_lb_listener_rule" "main" {
   /*
   Rules for the load balancer listener
   */
-  for_each = local.load_balancer_rules_combinations
-  listener_arn = local.listener_arns[each.value.service_name]
+  for_each = local.http_services
+  listener_arn = local.listener_arns[each.key]
   priority = random_integer.rule_priority[each.key].result
 
   action {
     type = "forward"
-    target_group_arn = aws_lb_target_group.http[each.value.service_name].arn
+    target_group_arn = aws_lb_target_group.http[each.key].arn
   }
 
+  # Match hostnames
   condition {
-    host_header { values = [each.value.hostname] }
+    host_header { values = each.value.http.listener_rule.hostnames }
   }
 
-  condition {
-    path_pattern { values = [each.value.path] }
+  # Match path patterns
+  dynamic "condition" {
+    for_each = each.value.http.listener_rule.paths == null ? [] : [true]
+    content {
+      path_pattern { values = each.value.http.listener_rule.paths }
+    }
+  }
+
+  # Match HTTP headers
+  dynamic "condition" {
+    for_each = coalesce(each.value.http.listener_rule.headers, {})
+    content {
+      http_header {
+        http_header_name = condition.key
+        values = condition.value
+      }
+    }
+  }
+
+  # HTTP request methods
+  dynamic "condition" {
+    for_each = each.value.http.listener_rule.methods == null ? [] : [true]
+    content {
+      http_request_method { values = each.value.http.listener_rule.methods }
+    }
+  }
+
+  # URL query string
+  dynamic "condition" {
+    for_each = coalesce(each.value.http.listener_rule.query_string, {})
+    content {
+      query_string {
+        key = condition.key
+        value = condition.value
+      }
+    }
+  }
+
+  # Source IP address CIDR blocks
+  dynamic "condition" {
+    for_each = each.value.http.listener_rule.source_ips == null ? [] : [true]
+    content {
+      source_ip { values = each.value.http.listener_rule.source_ips }
+    }
   }
 }
 
@@ -110,8 +135,20 @@ resource "random_integer" "rule_priority" {
   More:
   https://docs.aws.amazon.com/elasticloadbalancing/latest/application/listener-update-rules.html
   */
-  for_each = local.load_balancer_rules_combinations
-  min = each.value.path == "*" ? 41000 : 1
-  max = each.value.path == "*" ? 50000 : 40000
-  keepers = { listener_arn = data.aws_lb_listener.https[each.value.load_balancer_name].arn }
+  for_each = {
+    for service_name, service in local.http_services:
+    service_name => merge(service, {
+      priority_level = 6 - sum([
+        service.http.listener_rule.hostnames == null ? 0 : 1,
+        service.http.listener_rule.paths == null ? 0 : 1,
+        service.http.listener_rule.headers == null ? 0 : 1,
+        service.http.listener_rule.methods == null ? 0 : 1,
+        service.http.listener_rule.query_string == null ? 0 : 1,
+        service.http.listener_rule.source_ips == null ? 0 : 1,
+      ])
+    })
+  }
+  min = each.value.priority_level * floor(50000 / 6)
+  max = each.value.priority_level * floor(50000 / 6) + floor(50000 / 6)
+  keepers = { listener_arn = data.aws_lb_listener.https[each.value.http.load_balancer_name].arn }
 }
