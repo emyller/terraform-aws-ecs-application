@@ -102,6 +102,17 @@ resource "aws_lb_listener_rule" "main" {
       http_request_method { values = each.value.http.listener_rule.methods }
     }
   }
+
+  # URL query string
+  dynamic "condition" {
+    for_each = coalesce(each.value.http.listener_rule.query_string, {})
+    content {
+      query_string {
+        key = condition.key
+        value = condition.value
+      }
+    }
+  }
 }
 
 resource "random_integer" "rule_priority" {
@@ -119,11 +130,12 @@ resource "random_integer" "rule_priority" {
   for_each = {
     for service_name, service in local.http_services:
     service_name => merge(service, {
-      priority_level = 4 - sum([
+      priority_level = 5 - sum([
         service.http.listener_rule.hostnames == null ? 0 : 1,
         service.http.listener_rule.paths == null ? 0 : 1,
         service.http.listener_rule.headers == null ? 0 : 1,
         service.http.listener_rule.methods == null ? 0 : 1,
+        service.http.listener_rule.query_string == null ? 0 : 1,
       ])
     })
   }
