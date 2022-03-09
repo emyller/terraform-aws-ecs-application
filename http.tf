@@ -71,14 +71,27 @@ resource "aws_lb_listener_rule" "main" {
     target_group_arn = aws_lb_target_group.http[each.key].arn
   }
 
+  # Match hostnames
   condition {
     host_header { values = each.value.http.listener_rule.hostnames }
   }
 
+  # Match path patterns
   dynamic "condition" {
     for_each = each.value.http.listener_rule.paths == null ? [] : [true]
     content {
       path_pattern { values = each.value.http.listener_rule.paths }
+    }
+  }
+
+  # Match HTTP headers
+  dynamic "condition" {
+    for_each = coalesce(each.value.http.listener_rule.headers, {})
+    content {
+      http_header {
+        http_header_name = condition.key
+        values = [condition.value]
+      }
     }
   }
 }
@@ -98,9 +111,10 @@ resource "random_integer" "rule_priority" {
   for_each = {
     for service_name, service in local.http_services:
     service_name => merge(service, {
-      priority_level = 2 - sum([
+      priority_level = 3 - sum([
         service.http.listener_rule.hostnames == null ? 0 : 1,
         service.http.listener_rule.paths == null ? 0 : 1,
+        service.http.listener_rule.headers == null ? 0 : 1,
       ])
     })
   }
