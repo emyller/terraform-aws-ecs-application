@@ -8,7 +8,7 @@ A Terraform module to manage an application in AWS ECS.
 ```hcl
 module "application" {
   source = "emyller/ecs-application/aws"
-  version = "~> 1.0"
+  version = "~> 2.0"
 
   application_name = "acme-app"
   environment_name = "production"
@@ -18,6 +18,7 @@ module "application" {
     "app" = {
       memory = 512
       desired_count = 1
+      command = ["uwsgi", "--ini", "app.ini"]
       docker = {
         image_name = "acme-app"
         image_tag = "main"
@@ -29,6 +30,7 @@ module "application" {
         listener_rule = { hostnames = ["app.example.com"] }
         health_check = { path = "/", status_codes = [200, 302] }
       }
+      placement_strategy = { type = "binpack", field = "memory" }
     }
   }
 
