@@ -78,6 +78,10 @@ variable "services" {
         grace_period_seconds = optional(number)
       })
     }))
+    placement_strategy = optional(object({
+      type = string
+      field = string
+    }))
   }))
 
   validation {

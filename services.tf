@@ -102,9 +102,36 @@ resource "aws_ecs_service" "main" {
     : null  # No HTTP service
   )
 
+  # Place tasks according to available memory when grouping containers. Since
+  # container grouping is intented for non-production use, there is no point in
+  # spreading tasks.
+  dynamic "ordered_placement_strategy" {
+    for_each = var.group_containers ? [true] : []
+    content {
+      type = "binpack"
+      field = "memory"
+    }
+  }
+
+  # Place tasks according to service configuration. Historical default value is
+  # "spread(attribute:ecs.availability-zone)", may incur extra costs.
+  dynamic "ordered_placement_strategy" {
+    for_each = var.group_containers ? [] : [true]
+    content {
+      type = try(each.value.containers[each.key].placement_strategy.type, "spread")
+      field = try(each.value.containers[each.key].placement_strategy.field, "attribute:ecs.availability-zone")
+    }
+  }
+  
   ordered_placement_strategy {
-    type = "spread"
-    field = "attribute:ecs.availability-zone"
+    type = var.group_containers ? "binpack" : try(
+      each.value.containers[each.key].placement_strategy.type,
+      "spread",  # Historical default value, may incur extra costs
+    )
+    field = var.group_containers ? "memory" : try(
+      each.value.containers[each.key].placement_strategy.field,
+      "attribute:ecs.availability-zone",
+    )
   }
 
   dynamic "load_balancer" {
