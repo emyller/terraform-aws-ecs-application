@@ -123,17 +123,6 @@ resource "aws_ecs_service" "main" {
     }
   }
   
-  ordered_placement_strategy {
-    type = var.group_containers ? "binpack" : try(
-      each.value.containers[each.key].placement_strategy.type,
-      "spread",  # Historical default value, may incur extra costs
-    )
-    field = var.group_containers ? "memory" : try(
-      each.value.containers[each.key].placement_strategy.field,
-      "attribute:ecs.availability-zone",
-    )
-  }
-
   dynamic "load_balancer" {
     iterator = target_service
     for_each = {
