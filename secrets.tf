@@ -1,11 +1,11 @@
 locals {
-  # Collect a map of services and their secrets
+  # Collect a map of services and scheduled tasks and their secrets
   service_secrets = {
-    for service_name, service in merge(var.services, var.scheduled_tasks):
-    (service_name) => {
-      for env_var_name, secret_name in coalesce(service.secrets, var.secrets):
-      ("${service_name}/${env_var_name}") => {
-        service_name = service_name
+    for item_name, item in local.runnables:
+    item_name => {
+      for env_var_name, secret_name in coalesce(item.secrets, var.secrets):
+      ("${item_name}/${env_var_name}") => {
+        service_name = item_name
         env_var_name = env_var_name
         secret_name = secret_name
       }

@@ -12,4 +12,21 @@ data "aws_subnet" "any" {
 locals {
   vpc_id = data.aws_subnet.any.vpc_id
   common_name = "${var.environment_name}-${var.application_name}"
+
+  # Combine services and scheduled tasks
+  services = {
+    for name, item in var.services:
+    "services/${name}" => merge(item, {
+      name = name
+      full_name = "services/${name}"
+    })
+  }
+  scheduled_tasks = {
+    for name, item in var.scheduled_tasks:
+    "scheduled-tasks/${name}" => merge(item, {
+      name = name
+      full_name = "scheduled-tasks/${name}"
+    })
+  }
+  runnables = merge(local.services, local.scheduled_tasks)
 }

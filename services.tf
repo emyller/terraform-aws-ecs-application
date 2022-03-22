@@ -6,15 +6,17 @@ locals {
   grouped_services = (var.group_containers ? {
     # All containers grouped in one service
     (var.application_name) = {
+      name = var.application_name
       family_name = local.common_name
-      containers = var.services
+      containers = local.services
     }
   } : {
     # Each container to each service
-    for service_name, service in var.services:
-    (service_name) => {
-      family_name = "${local.common_name}-${service_name}"
-      containers = { (service_name) = service }
+    for item_name, service in local.services:
+    item_name => {
+      name = service.name
+      family_name = "${local.common_name}-${service.name}"
+      containers = { (item_name) = service }
     }
   })
 }
@@ -23,7 +25,7 @@ data "aws_ecs_cluster" "main" {
   cluster_name = var.cluster_name
 }
 
-resource "aws_ecs_task_definition" "main" {
+resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
   /*
   A task definition for each service in the application
   */
@@ -33,10 +35,10 @@ resource "aws_ecs_task_definition" "main" {
   execution_role_arn = aws_iam_role.ecs_agent.arn
 
   container_definitions = jsonencode([
-    for service_name, service in each.value.containers:
+    for item_name, service in each.value.containers:
     merge({
-      image = "${local.docker_image_addresses[service_name]}:${service.docker.image_tag}"
-      name = service_name
+      image = "${local.docker_image_addresses[item_name]}:${service.docker.image_tag}"
+      name = service.name
       essential = true
       memoryReservation = service.memory
       environment = [
@@ -44,7 +46,7 @@ resource "aws_ecs_task_definition" "main" {
         { name = env_var_name, value = value }
       ]
       secrets = [
-        for service_secret, secret_info in local.service_secrets[service_name]: {
+        for service_secret, secret_info in local.service_secrets[item_name]: {
           name = secret_info.env_var_name,
           valueFrom = data.aws_secretsmanager_secret.services[service_secret].arn
         }
@@ -52,7 +54,7 @@ resource "aws_ecs_task_definition" "main" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group" = aws_cloudwatch_log_group.main[service_name].name
+          "awslogs-group" = aws_cloudwatch_log_group.main[item_name].name
           "awslogs-region" = data.aws_region.current.name
           "awslogs-stream-prefix" = "ecs"
         }
@@ -83,7 +85,7 @@ resource "aws_ecs_task_definition" "main" {
 
 resource "aws_ecs_service" "main" {
   for_each = local.grouped_services
-  name = each.key
+  name = each.value.name
   cluster = data.aws_ecs_cluster.main.id
   task_definition = "${aws_ecs_task_definition.main[each.key].family}:${aws_ecs_task_definition.main[each.key].revision}"
   launch_type = "EC2"

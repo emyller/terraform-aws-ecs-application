@@ -25,8 +25,8 @@ data "aws_iam_policy_document" "event_dispatch" {
   statement {
     actions = ["ecs:RunTask"]
     resources = [
-      for task_name in keys(var.scheduled_tasks):
-      replace(aws_ecs_task_definition.scheduled_task[task_name].arn, "/:\\d+$/", ":*")
+      for task_name in keys(local.scheduled_tasks):
+      replace(aws_ecs_task_definition.scheduled_tasks[task_name].arn, "/:\\d+$/", ":*")
     ]
   }
 
