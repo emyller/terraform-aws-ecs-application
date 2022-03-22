@@ -91,6 +91,8 @@ variable "services" {
     )) == 0
     error_message = "The 'var.services[*].docker.source' must be one of: [dockerhub, ecr]."
   }
+
+  default = {}
 }
 
 variable "scheduled_tasks" {
