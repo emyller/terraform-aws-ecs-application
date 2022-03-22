@@ -15,6 +15,7 @@ data "aws_iam_policy_document" "events_assume" {
 }
 
 resource "aws_iam_role_policy" "event_dispatch" {
+  count = length(local.scheduled_tasks) > 0 ? 1 : 0
   name = "event-dispatch"
   policy = data.aws_iam_policy_document.event_dispatch.json
   role = aws_iam_role.event_dispatcher.id
