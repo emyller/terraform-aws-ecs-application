@@ -21,19 +21,18 @@ resource "aws_iam_role_policy" "event_dispatch" {
 }
 
 data "aws_iam_policy_document" "event_dispatch" {
+  # Allow EventBridge to run a task
   statement {
-    actions = [
-      "ecs:RunTask",
-    ]
+    actions = ["ecs:RunTask"]
     resources = [
       for task_name in keys(var.scheduled_tasks):
-      "${aws_ecs_task_definition.scheduled_task[task_name].arn}:*"
+      replace(aws_ecs_task_definition.scheduled_task[task_name].arn, "/:\\d+$/", ":*")
     ]
   }
+
+  # Let EventBridge pass assign an IAM role to the task
   statement {
-    actions = [
-      "iam:PassRole",
-    ]
-    resources = ["*"]
+    actions = ["iam:PassRole"]
+    resources = [aws_iam_role.ecs_agent.arn]
   }
 }
