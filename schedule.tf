@@ -42,6 +42,11 @@ resource "aws_ecs_task_definition" "scheduled_task" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
+    },
+    
+    # Append a command only if it's set
+    task.command == null ? {} : {
+      command = task.command
     })
   ])
 }
@@ -63,13 +68,4 @@ resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
     task_count = 1
     task_definition_arn = aws_ecs_task_definition.scheduled_task[each.key].arn
   }
-
-  input = jsonencode({
-    containerOverrides = [
-      {
-        name = each.key,
-        command = each.value.command,
-      }
-    ]
-  })
 }
