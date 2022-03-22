@@ -92,3 +92,27 @@ variable "services" {
     error_message = "The 'var.services[*].docker.source' must be one of: [dockerhub, ecr]."
   }
 }
+
+variable "scheduled_tasks" {
+  description = "A mapping of scheduled tasks to deploy in the cluster."
+  type = map(object({
+    schedule_expression = string
+    memory = number
+    command = optional(list(string))
+    environment = optional(map(string))
+    secrets = optional(map(string))
+    docker = object({
+      image_name = string
+      image_tag = string
+      source = string
+    })
+  }))
+
+  validation {
+    condition = length(setsubtract(
+      values(var.scheduled_tasks)[*].docker.source,
+      ["dockerhub", "ecr"],
+    )) == 0
+    error_message = "The 'var.services[*].docker.source' must be one of: [dockerhub, ecr]."
+  }
+}

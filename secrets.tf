@@ -1,7 +1,7 @@
 locals {
   # Collect a map of services and their secrets
   service_secrets = {
-    for service_name, service in var.services:
+    for service_name, service in merge(var.services, var.scheduled_tasks):
     (service_name) => {
       for env_var_name, secret_name in coalesce(service.secrets, var.secrets):
       ("${service_name}/${env_var_name}") => {

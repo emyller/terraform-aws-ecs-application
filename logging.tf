@@ -1,5 +1,5 @@
 resource "aws_cloudwatch_log_group" "main" {
-  for_each = var.services
+  for_each = merge(var.services, var.scheduled_tasks)
   name = "/aws/ecs/${var.environment_name}/${var.application_name}/${each.key}"
   retention_in_days = 14
 }
@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "logging" {
       "logs:PutLogEvents",
     ]
     resources = [
-      for service_name in keys(var.services):
+      for service_name in keys(merge(var.services, var.scheduled_tasks)):
       "${aws_cloudwatch_log_group.main[service_name].arn}:*"
     ]
   }
