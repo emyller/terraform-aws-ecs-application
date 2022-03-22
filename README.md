@@ -33,6 +33,17 @@ module "application" {
       placement_strategy = { type = "binpack", field = "memory" }
     }
   }
+  scheduled_tasks = {
+    "say-hello" = {
+      memory = 128
+      command = ["echo", "hello"]
+      docker = {
+        image_name = "acme-app"
+        image_tag = "main"
+        source = "ecr"
+      }
+    }
+  }
 
   environment_variables = {
     "PORT" = 3005

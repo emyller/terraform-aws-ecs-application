@@ -1,18 +1,18 @@
 locals {
   # Map of service names to their ECR repository, if set
   ecr_image_names = {
-    for service_name, service in var.services:
-    service_name => service.docker.image_name
-    if service.docker.source == "ecr"
+    for item_name, item in local.runnables:
+    item_name => item.docker.image_name
+    if item.docker.source == "ecr"
   }
 
   # Map of service name to their Docker image address
   docker_image_addresses = {
-    for service_name, service in var.services:
-    service_name => {
-      "dockerhub" = "docker.io/${service.docker.image_name}"
-      "ecr" = try(data.aws_ecr_repository.services[service_name].repository_url, null)
-    }[service.docker.source]
+    for item_name, item in local.runnables:
+    item_name => {
+      "dockerhub" = "docker.io/${item.docker.image_name}"
+      "ecr" = try(data.aws_ecr_repository.services[item_name].repository_url, null)
+    }[item.docker.source]
   }
 }
 

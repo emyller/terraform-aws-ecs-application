@@ -1,6 +1,6 @@
 resource "aws_cloudwatch_log_group" "main" {
-  for_each = var.services
-  name = "/aws/ecs/${var.environment_name}/${var.application_name}/${each.key}"
+  for_each = local.runnables
+  name = "/aws/ecs/${var.environment_name}/${var.application_name}/${each.value.name}"
   retention_in_days = 14
 }
 
@@ -11,8 +11,8 @@ data "aws_iam_policy_document" "logging" {
       "logs:PutLogEvents",
     ]
     resources = [
-      for service_name in keys(var.services):
-      "${aws_cloudwatch_log_group.main[service_name].arn}:*"
+      for item_name in keys(local.runnables):
+      "${aws_cloudwatch_log_group.main[item_name].arn}:*"
     ]
   }
 }
