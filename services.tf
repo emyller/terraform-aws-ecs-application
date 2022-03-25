@@ -93,6 +93,7 @@ resource "aws_ecs_service" "main" {
   force_new_deployment = true
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent = 200
+  enable_execute_command = true
 
   # When grouping containers in a single service, desired count needs to be 1
   desired_count = var.group_containers ? 1 : one(values(each.value.containers)).desired_count
