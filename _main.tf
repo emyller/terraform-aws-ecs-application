@@ -26,6 +26,7 @@ locals {
     "scheduled-tasks/${name}" => merge(item, {
       name = name
       full_name = "scheduled-tasks/${name}"
+      is_fargate = item.launch_type == "FARGATE"
     })
   }
   runnables = merge(local.services, local.scheduled_tasks)
