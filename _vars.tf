@@ -58,6 +58,8 @@ variable "services" {
   type = map(object({
     desired_count = number
     memory = number
+    cpu_units = optional(number)
+    launch_type = optional(string)
     command = optional(list(string))
     environment = optional(map(string))
     secrets = optional(map(string))

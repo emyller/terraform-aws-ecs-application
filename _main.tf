@@ -19,6 +19,7 @@ locals {
     "services/${name}" => merge(item, {
       name = name
       full_name = "services/${name}"
+      is_fargate = item.launch_type == "FARGATE"
     })
   }
   scheduled_tasks = {

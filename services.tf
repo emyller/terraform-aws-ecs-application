@@ -9,6 +9,10 @@ locals {
       name = var.application_name
       family_name = local.common_name
       containers = local.services
+      is_fargate = one(distinct([
+        for container in values(local.services):
+        coalesce(container.launch_type, "EC2")
+      ])) == "FARGATE"
     }
   } : {
     # Each container to each service
@@ -17,6 +21,7 @@ locals {
       name = service.name
       family_name = "${local.common_name}-${service.name}"
       containers = { (item_name) = service }
+      is_fargate = service.is_fargate
     }
   })
 }
@@ -31,8 +36,34 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
   */
   for_each = local.grouped_services
   family = each.value.family_name
-  network_mode = "bridge"
   execution_role_arn = aws_iam_role.ecs_agent.arn
+
+  # Set requirement if using Fargate
+  requires_compatibilities = each.value.is_fargate ? ["FARGATE"] : null
+
+  # Fargate requires setting CPU units
+  cpu = each.value.is_fargate ? sum([
+    for container in each.value.containers:
+    coalesce(container.cpu_units, 256)
+  ]) : null
+
+  # Fargate needs memory to be set at task level
+  # memory = each.value.is_fargate ? sum(each.value.containers[*].memory) : null
+  memory = each.value.is_fargate ? sum([
+    for container in each.value.containers: container.memory
+  ]) : null
+
+  # Fargate only supports VPC networking
+  network_mode = each.value.is_fargate ? "awsvpc" : "bridge"
+
+  # Fargate requires setting a runtime platform
+  dynamic "runtime_platform" {
+    for_each = each.value.is_fargate ? [true] : []
+    content {
+      operating_system_family = "LINUX"
+      cpu_architecture = "X86_64"  # TODO: Think about supporting ARM64
+    }
+  }
 
   container_definitions = jsonencode([
     for item_name, service in each.value.containers:
@@ -88,7 +119,7 @@ resource "aws_ecs_service" "main" {
   name = each.value.name
   cluster = data.aws_ecs_cluster.main.id
   task_definition = "${aws_ecs_task_definition.main[each.key].family}:${aws_ecs_task_definition.main[each.key].revision}"
-  launch_type = "EC2"
+  launch_type = each.value.is_fargate ? "FARGATE" : "EC2"
   scheduling_strategy = "REPLICA"
   force_new_deployment = true
   deployment_minimum_healthy_percent = 50
@@ -104,11 +135,20 @@ resource "aws_ecs_service" "main" {
     : null  # No HTTP service
   )
 
+  dynamic "network_configuration" {
+    for_each = each.value.is_fargate ? [true] : []
+    content {
+      subnets = var.subnets
+      security_groups = var.security_group_ids
+      assign_public_ip = false
+    }
+  }
+
   # Place tasks according to available memory when grouping containers. Since
   # container grouping is intented for non-production use, there is no point in
   # spreading tasks.
   dynamic "ordered_placement_strategy" {
-    for_each = var.group_containers ? [true] : []
+    for_each = (!each.value.is_fargate && var.group_containers) ? [true] : []
     content {
       type = "binpack"
       field = "memory"
@@ -118,7 +158,7 @@ resource "aws_ecs_service" "main" {
   # Place tasks according to service configuration. Historical default value is
   # "spread(attribute:ecs.availability-zone)", may incur extra costs.
   dynamic "ordered_placement_strategy" {
-    for_each = var.group_containers ? [] : [true]
+    for_each = (each.value.is_fargate || var.group_containers) ? [] : [true]
     content {
       type = try(each.value.containers[each.key].placement_strategy.type, "spread")
       field = try(each.value.containers[each.key].placement_strategy.field, "attribute:ecs.availability-zone")
