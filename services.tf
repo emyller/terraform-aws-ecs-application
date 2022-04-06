@@ -33,6 +33,7 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
   family = each.value.family_name
   network_mode = "bridge"
   execution_role_arn = aws_iam_role.ecs_agent.arn
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   container_definitions = jsonencode([
     for item_name, service in each.value.containers:
