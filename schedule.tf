@@ -6,6 +6,27 @@ resource "aws_ecs_task_definition" "scheduled_tasks" {
   family = "${local.common_name}-${each.value.name}"
   execution_role_arn = aws_iam_role.ecs_agent.arn
 
+  # Set requirement if using Fargate
+  requires_compatibilities = each.value.is_fargate ? ["FARGATE"] : null
+
+  # Fargate requires setting CPU units
+  cpu = each.value.is_fargate ? coalesce(each.value.cpu_units, 256) : null
+
+  # Fargate needs memory to be set at task level
+  memory = each.value.is_fargate ? each.value.memory : null
+
+  # Fargate only supports VPC networking
+  network_mode = each.value.is_fargate ? "awsvpc" : null
+
+  # Fargate requires setting a runtime platform
+  dynamic "runtime_platform" {
+    for_each = each.value.is_fargate ? [true] : []
+    content {
+      operating_system_family = "LINUX"
+      cpu_architecture = "X86_64"  # TODO: Think about supporting ARM64
+    }
+  }
+
   container_definitions = jsonencode([
     merge({
       image = "${local.docker_image_addresses[each.key]}:${each.value.docker.image_tag}"
@@ -52,8 +73,18 @@ resource "aws_cloudwatch_event_target" "ecs_scheduled_task" {
   role_arn = aws_iam_role.event_dispatcher.arn
 
   ecs_target {
-    launch_type = "EC2"
+    launch_type = coalesce(each.value.launch_type, "EC2")
     task_count = 1
     task_definition_arn = aws_ecs_task_definition.scheduled_tasks[each.key].arn
+
+    # Fargate tasks need explicit network configuration
+    dynamic "network_configuration" {
+      for_each = each.value.is_fargate ? [true] : []
+      content {
+        subnets = var.subnets
+        security_groups = var.security_group_ids
+        assign_public_ip = false
+      }
+    }
   }
 }

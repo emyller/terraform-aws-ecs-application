@@ -18,6 +18,12 @@ variable "subnets" {
   type = list(string)
 }
 
+variable "security_group_ids" {
+  description = "Security groups to assign to Fargate tasks, if any."
+  type = list(string)
+  default = []
+}
+
 variable "environment_variables" {
   description = <<-EOT
     A map of environment variables to inject in the containers.
@@ -52,6 +58,8 @@ variable "services" {
   type = map(object({
     desired_count = number
     memory = number
+    cpu_units = optional(number)
+    launch_type = optional(string)
     command = optional(list(string))
     environment = optional(map(string))
     secrets = optional(map(string))
@@ -100,6 +108,8 @@ variable "scheduled_tasks" {
   type = map(object({
     schedule_expression = string
     memory = number
+    cpu_units = optional(number)
+    launch_type = optional(string)
     command = optional(list(string))
     environment = optional(map(string))
     secrets = optional(map(string))
