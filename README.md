@@ -8,13 +8,15 @@ A Terraform module to manage an application in AWS ECS.
 ```hcl
 module "application" {
   source = "emyller/ecs-application/aws"
-  version = "~> 2.0"
+  version = "~> 3.0"
 
   application_name = "acme-app"
   environment_name = "production"
   cluster_name = "production-web"  # See the ecs-cluster module
   subnets = data.aws_subnet_ids.private.ids
   services = {
+
+    # EC2 example
     "app" = {
       memory = 512
       desired_count = 1
@@ -31,6 +33,20 @@ module "application" {
         health_check = { path = "/", status_codes = [200, 302] }
       }
       placement_strategy = { type = "binpack", field = "memory" }
+    }
+
+    # Fargate example
+    "worker" = {
+      memory = 1024
+      cpu_units = 256
+      launch_type = "FARGATE"
+      desired_count = 2
+      command = ["run-worker", "--some-option"]
+      docker = {
+        image_name = "acme-app"
+        image_tag = "main"
+        source = "ecr"
+      }
     }
   }
   scheduled_tasks = {
