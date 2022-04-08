@@ -97,7 +97,7 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
       portMappings = [{
         protocol = "tcp"
         containerPort = service.http.port
-        hostPort = 0  # Dynamic port
+        hostPort = service.is_fargate ? service.http.port : 0
       }]
     },
 
@@ -174,7 +174,7 @@ resource "aws_ecs_service" "main" {
     }
     content {
       target_group_arn = aws_lb_target_group.http[target_service.key].arn
-      container_name = target_service.key
+      container_name = target_service.value.name
       container_port = target_service.value.http.port
     }
   }
