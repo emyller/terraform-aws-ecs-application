@@ -33,5 +33,5 @@ resource "aws_iam_role_policy" "get_secrets" {
   count = length(var.secrets) > 0 ? 1 : 0
   name = "get-secrets"
   policy = data.aws_iam_policy_document.get_secrets.json
-  role = aws_iam_role.tasks.id
+  role = aws_iam_role.execute.id
 }

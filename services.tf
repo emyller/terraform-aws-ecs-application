@@ -36,8 +36,8 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
   */
   for_each = local.grouped_services
   family = each.value.family_name
-  execution_role_arn = aws_iam_role.tasks.arn
-  task_role_arn = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.execute.arn
+  task_role_arn = aws_iam_role.task.arn
 
   # Set requirement if using Fargate
   requires_compatibilities = each.value.is_fargate ? ["FARGATE"] : null
