@@ -20,5 +20,5 @@ data "aws_iam_policy_document" "logging" {
 resource "aws_iam_role_policy" "logging" {
   name = "logging"
   policy = data.aws_iam_policy_document.logging.json
-  role = aws_iam_role.ecs_agent.id
+  role = aws_iam_role.tasks.id
 }

@@ -1,17 +1,12 @@
-resource "aws_iam_role" "ecs_agent" {
+resource "aws_iam_role" "tasks" {
   /*
-  Role to be assumed by the ECS agent in each ECS instance
-
-  This role needs permissions to:
-  - Fetch Docker images from Elastic Container Registry (if set).
-  - Fetch secrets from Secrets Manager and inject them in containers as
-    environment variables (if any).
+  Role to be assumed by the ECS task
   */
   name = "ecs-${var.environment_name}-${var.application_name}"
-  assume_role_policy = data.aws_iam_policy_document.ecs_agent_assume.json
+  assume_role_policy = data.aws_iam_policy_document.tasks_assume.json
 }
 
-data "aws_iam_policy_document" "ecs_agent_assume" {
+data "aws_iam_policy_document" "tasks_assume" {
   statement {
     actions = ["sts:AssumeRole"]
 

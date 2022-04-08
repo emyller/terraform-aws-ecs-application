@@ -43,5 +43,5 @@ resource "aws_iam_role_policy" "pull_ecr_image" {
   count = length(local.ecr_image_names) > 0 ? 1 : 0
   name = "pull-ecr-image"
   policy = data.aws_iam_policy_document.pull_ecr_image.json
-  role = aws_iam_role.ecs_agent.id
+  role = aws_iam_role.tasks.id
 }
