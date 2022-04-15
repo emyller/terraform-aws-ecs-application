@@ -18,7 +18,8 @@ data "aws_iam_policy_document" "logging" {
 }
 
 resource "aws_iam_role_policy" "logging" {
+  count = length(local.runnables) > 0 ? 1 : 0
   name = "logging"
   policy = data.aws_iam_policy_document.logging.json
-  role = aws_iam_role.ecs_agent.id
+  role = aws_iam_role.execute.id
 }

@@ -1,15 +1,15 @@
 locals {
   # Filter services that expose a HTTP port
   http_services = {
-    for service_name, service in var.services:
+    for service_name, service in local.services:
     service_name => service
     if service.http != null
   }
 
   # Map service names to target group names
   target_group_names = {
-    for service_name in keys(var.services):
-    service_name => "${local.common_name}-${service_name}"
+    for service_name, service in local.http_services:
+    service_name => "${local.common_name}-${service.name}"
   }
 
   # Standard limit of rules per ALB listener
@@ -46,14 +46,14 @@ resource "aws_lb_target_group" "http" {
   port = each.value.http.port
   deregistration_delay = 30
   protocol = "HTTP"
-  target_type = "instance"
+  target_type = each.value.is_fargate ? "ip" : "instance"
 
   health_check {
     interval = 30
     path = each.value.http.health_check.path
     unhealthy_threshold = 2
     healthy_threshold = 2
-    port = "traffic-port"
+    port = each.value.is_fargate ? each.value.http.port : "traffic-port"
     matcher = join(",", each.value.http.health_check.status_codes)
   }
 }

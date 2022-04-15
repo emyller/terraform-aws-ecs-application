@@ -36,8 +36,8 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
   */
   for_each = local.grouped_services
   family = each.value.family_name
-  execution_role_arn = aws_iam_role.ecs_agent.arn
-  task_role_arn = aws_iam_role.ecs_task.arn
+  execution_role_arn = aws_iam_role.execute.arn
+  task_role_arn = aws_iam_role.task.arn
 
   # Set requirement if using Fargate
   requires_compatibilities = each.value.is_fargate ? ["FARGATE"] : null
@@ -98,7 +98,7 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
       portMappings = [{
         protocol = "tcp"
         containerPort = service.http.port
-        hostPort = 0  # Dynamic port
+        hostPort = service.is_fargate ? service.http.port : 0
       }]
     },
 
@@ -176,7 +176,7 @@ resource "aws_ecs_service" "main" {
     }
     content {
       target_group_arn = aws_lb_target_group.http[target_service.key].arn
-      container_name = target_service.key
+      container_name = target_service.value.name
       container_port = target_service.value.http.port
     }
   }
