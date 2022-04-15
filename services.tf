@@ -37,6 +37,7 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
   for_each = local.grouped_services
   family = each.value.family_name
   execution_role_arn = aws_iam_role.ecs_agent.arn
+  task_role_arn = aws_iam_role.ecs_task.arn
 
   # Set requirement if using Fargate
   requires_compatibilities = each.value.is_fargate ? ["FARGATE"] : null
@@ -124,6 +125,7 @@ resource "aws_ecs_service" "main" {
   force_new_deployment = true
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent = 200
+  enable_execute_command = true
 
   # When grouping containers in a single service, desired count needs to be 1
   desired_count = var.group_containers ? 1 : one(values(each.value.containers)).desired_count
