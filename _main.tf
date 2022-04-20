@@ -13,7 +13,6 @@ locals {
   vpc_id = data.aws_subnet.any.vpc_id
   common_name = "${var.environment_name}-${var.application_name}"
 
-  # Combine services and scheduled tasks
   services = {
     for name, item in var.services:
     "services/${name}" => merge(item, {
@@ -22,6 +21,7 @@ locals {
       is_fargate = item.launch_type == "FARGATE"
     })
   }
+
   scheduled_tasks = {
     for name, item in var.scheduled_tasks:
     "scheduled-tasks/${name}" => merge(item, {
@@ -30,5 +30,15 @@ locals {
       is_fargate = item.launch_type == "FARGATE"
     })
   }
-  runnables = merge(local.services, local.scheduled_tasks)
+
+  reactive_tasks = {
+    for name, item in var.reactive_tasks:
+    "reactive-tasks/${name}" => merge(item, {
+      name = name
+      full_name = "reactive-tasks/${name}"
+      is_fargate = item.launch_type == "FARGATE"
+    })
+  }
+  
+  runnables = merge(local.services, local.scheduled_tasks, local.reactive_tasks)
 }

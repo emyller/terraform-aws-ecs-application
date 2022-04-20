@@ -130,3 +130,36 @@ variable "scheduled_tasks" {
 
   default = {}
 }
+
+variable "reactive_tasks" {
+  description = "A mapping of reactive tasks to deploy in the cluster."
+  type = map(object({
+    memory = number
+    cpu_units = optional(number)
+    launch_type = optional(string)
+    command = optional(list(string))
+    environment = optional(map(string))
+    secrets = optional(map(string))
+    docker = object({
+      image_name = string
+      image_tag = string
+      source = string
+    })
+    event_pattern = object({
+      source = list(string)
+      detail_type = list(string)
+      detail = any  # Format defined by AWS API
+    })
+    event_variables = map(string)
+  }))
+
+  validation {
+    condition = length(setsubtract(
+      values(var.reactive_tasks)[*].docker.source,
+      ["dockerhub", "ecr"],
+    )) == 0
+    error_message = "The 'var.services[*].docker.source' must be one of: [dockerhub, ecr]."
+  }
+
+  default = {}
+}
