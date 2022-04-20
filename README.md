@@ -14,10 +14,9 @@ module "application" {
   environment_name = "production"
   cluster_name = "production-web"  # See the ecs-cluster module
   subnets = data.aws_subnet_ids.private.ids
-  services = {
 
-    # EC2 example
-    "app" = {
+  services = {
+    "app" = {  # EC2 example
       memory = 512
       desired_count = 1
       command = ["uwsgi", "--ini", "app.ini"]
@@ -34,9 +33,7 @@ module "application" {
       }
       placement_strategy = { type = "binpack", field = "memory" }
     }
-
-    # Fargate example
-    "worker" = {
+    "worker" = {  # Fargate example
       memory = 1024
       cpu_units = 256
       launch_type = "FARGATE"
@@ -49,6 +46,7 @@ module "application" {
       }
     }
   }
+
   scheduled_tasks = {
     "say-hello" = {
       memory = 128
@@ -57,6 +55,31 @@ module "application" {
         image_name = "acme-app"
         image_tag = "main"
         source = "ecr"
+      }
+    }
+  }
+
+  reactive_tasks = {
+    "process-upload" = {
+      launch_type = "FARGATE"
+      memory = 512
+      command = item.command
+      docker = {
+        image_name = module.ecr.repository.name
+        image_tag = "master"
+        source = "ecr"
+      }
+      event_pattern = {
+        source = ["aws.s3"]
+        detail_type = ["Object Created"]
+        detail = {
+          "bucket": { "name": "prod-uploads" }
+          "object": { "key": [{ "prefix": "user/avatars/" }] }
+        }
+      }
+      event_variables = {
+        bucket = "$.detail.bucket.name"
+        key = "$.detail.object.key"
       }
     }
   }
