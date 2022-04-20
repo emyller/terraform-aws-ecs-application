@@ -4,7 +4,7 @@ resource "aws_ecs_task_definition" "scheduled_tasks" {
   */
   for_each = local.scheduled_tasks
   family = "${local.common_name}-${each.value.name}"
-  execution_role_arn = aws_iam_role.ecs_agent.arn
+  execution_role_arn = aws_iam_role.execute.arn
 
   # Set requirement if using Fargate
   requires_compatibilities = each.value.is_fargate ? ["FARGATE"] : null

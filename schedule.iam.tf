@@ -37,6 +37,6 @@ data "aws_iam_policy_document" "event_dispatch" {
   # Let EventBridge pass assign an IAM role to the task
   statement {
     actions = ["iam:PassRole"]
-    resources = [aws_iam_role.ecs_agent.arn]
+    resources = [aws_iam_role.execute.arn]
   }
 }
