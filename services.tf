@@ -86,7 +86,7 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group" = aws_cloudwatch_log_group.main[item_name].name
+          "awslogs-group" = aws_cloudwatch_log_group.main[var.group_logs ? "__all__" : item_name].name
           "awslogs-region" = data.aws_region.current.name
           "awslogs-stream-prefix" = "ecs"
         }
