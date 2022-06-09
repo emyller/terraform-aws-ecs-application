@@ -59,6 +59,12 @@ variable "group_logs" {
   default = false
 }
 
+variable "log_retention_days" {
+  description = "Amount of days to store log history."
+  type = number
+  default = 14
+}
+
 variable "services" {
   description = "A mapping of services to deploy in the cluster."
   type = map(object({

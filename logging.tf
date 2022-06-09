@@ -12,7 +12,7 @@ locals {
 resource "aws_cloudwatch_log_group" "main" {
   for_each = local.log_groups
   name = each.value
-  retention_in_days = 14
+  retention_in_days = var.log_retention_days
 }
 
 data "aws_iam_policy_document" "logging" {
