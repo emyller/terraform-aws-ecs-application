@@ -45,7 +45,7 @@ resource "aws_ecs_task_definition" "reactive_tasks" {
     logConfiguration = {
       logDriver = "awslogs"
       options = {
-        "awslogs-group" = aws_cloudwatch_log_group.main[each.key].name
+        "awslogs-group" = aws_cloudwatch_log_group.main[var.group_logs ? "__all__" : each.key].name
         "awslogs-region" = data.aws_region.current.name
         "awslogs-stream-prefix" = "ecs"
       }
