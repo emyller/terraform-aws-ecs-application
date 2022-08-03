@@ -19,7 +19,7 @@ module "application" {
     "app" = {  # EC2 example
       memory = 512
       desired_count = 1
-      command = ["uwsgi", "--ini", "app.ini"]
+      command = ["cat", "/mnt/my-configuration"]
       docker = {
         image_name = "acme-app"
         image_tag = "main"
@@ -31,7 +31,18 @@ module "application" {
         listener_rule = { hostnames = ["app.example.com"] }
         health_check = { path = "/", status_codes = [200, 302] }
       }
-      placement_strategy = { type = "binpack", field = "memory" }
+      tcp = {
+        port = 22
+        container_port = 2022
+        load_balancer_name = "production-tcp"
+      }
+      placement_strategy = {
+        type = "binpack"
+        field = "memory"
+      }
+      mount_files = {
+        "my-configuration" = "aGVsbG8gPSAid29ybGQiCg=="
+      }
     }
     "worker" = {  # Fargate example
       memory = 1024
