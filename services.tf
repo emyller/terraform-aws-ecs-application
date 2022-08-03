@@ -66,6 +66,10 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
     }
   }
 
+  volume {
+    name = "file-mounter"
+  }
+
   container_definitions = jsonencode(flatten([
     for item_name, service in each.value.containers: [
       {  # Main (essential) container
@@ -110,8 +114,35 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
               service.tcp.port,
             ) : 0
           },
-        ]: port_map if port_map != null],
+        ]: port_map if port_map != null]
+        dependsOn = flatten(
+          # Wait for file mounter
+          service.mount_files == null ? [] : [{
+            condition = "COMPLETE"
+            containerName = "file-mounter"
+          }],
+        )
+        mountPoints = [{  # Load mounted files, if any
+          containerPath = "/mnt"
+          sourceVolume = "file-mounter"
+        }]
       },
+
+      # Side container to create and mount files
+      service.mount_files == null ? [] : [{
+        image = "docker.io/bash:latest"
+        name = "file-mounter"
+        essential = false  # It will die after doing its job
+        command = ["-c", join(";", formatlist(
+          "echo '%s' | base64 -d - | tee /mnt/%s",
+          values(service.mount_files),
+          keys(service.mount_files),
+        ))]
+        mountPoints = [{  # Persist files to volume
+          containerPath = "/mnt"
+          sourceVolume = "file-mounter"
+        }]
+      }]
     ]
   ]))
 }

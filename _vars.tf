@@ -107,6 +107,7 @@ variable "services" {
       type = string
       field = string
     }))
+    mount_files = optional(map(string))
   }))
 
   validation {
