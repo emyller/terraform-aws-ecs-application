@@ -93,13 +93,29 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
       }
     },
 
-    # Publish ports only if intended
-    service.http == null ? {} : {
-      portMappings = [{
-        protocol = "tcp"
-        containerPort = service.http.port
-        hostPort = service.is_fargate ? service.http.port : 0
-      }]
+    # Dynamic ports
+    {
+      portMappings = [for port_map in [
+        # HTTP port, if service exposes HTTP
+        service.http == null ? null : {
+          protocol = "tcp"
+          containerPort = service.http.port
+          hostPort = service.is_fargate ? service.http.port : 0
+        },
+
+        # TCP port, if service exposes TCP (not HTTP)
+        service.tcp == null ? null : {
+          protocol = "tcp"
+          containerPort = coalesce(
+            service.tcp.container_port,
+            service.tcp.port,
+          )
+          hostPort = service.is_fargate ? coalesce(
+            service.tcp.container_port,
+            service.tcp.port,
+          ) : 0
+        },
+      ]: port_map if port_map != null]
     },
 
     # Link containers to others they need
@@ -167,6 +183,7 @@ resource "aws_ecs_service" "main" {
     }
   }
   
+  # Associate tasks with a HTTP target group
   dynamic "load_balancer" {
     iterator = target_service
     for_each = {
@@ -178,6 +195,24 @@ resource "aws_ecs_service" "main" {
       target_group_arn = aws_lb_target_group.http[target_service.key].arn
       container_name = target_service.value.name
       container_port = target_service.value.http.port
+    }
+  }
+
+  # Associate tasks with a TCP target group
+  dynamic "load_balancer" {
+    iterator = target_service
+    for_each = {
+      for service_name, service in each.value.containers:
+      service_name => service
+      if service.tcp != null
+    }
+    content {
+      target_group_arn = aws_lb_target_group.tcp[target_service.key].arn
+      container_name = target_service.value.name
+      container_port = coalesce(
+        target_service.value.tcp.container_port,
+        target_service.value.tcp.port,
+      )
     }
   }
 }

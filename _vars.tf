@@ -98,6 +98,11 @@ variable "services" {
         grace_period_seconds = optional(number)
       })
     }))
+    tcp = optional(object({
+      port = number
+      container_port = optional(number)
+      load_balancer_name = string
+    }))
     placement_strategy = optional(object({
       type = string
       field = string
