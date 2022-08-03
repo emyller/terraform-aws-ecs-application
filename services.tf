@@ -66,69 +66,54 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
     }
   }
 
-  container_definitions = jsonencode([
-    for item_name, service in each.value.containers:
-    merge({
-      image = "${local.docker_image_addresses[item_name]}:${service.docker.image_tag}"
-      name = service.name
-      essential = true
-      memoryReservation = service.memory
-      environment = [
-        for env_var_name, value in coalesce(service.environment, var.environment_variables):
-        { name = env_var_name, value = value }
-      ]
-      secrets = [
-        for service_secret, secret_info in local.service_secrets[item_name]: {
-          name = secret_info.env_var_name,
-          valueFrom = data.aws_secretsmanager_secret.services[service_secret].arn
+  container_definitions = jsonencode(flatten([
+    for item_name, service in each.value.containers: [
+      {  # Main (essential) container
+        image = "${local.docker_image_addresses[item_name]}:${service.docker.image_tag}"
+        name = service.name
+        essential = true
+        command = service.command
+        memoryReservation = service.memory
+        links = [for link in coalesce(service.links, []): "${link}:${link}"]
+        environment = [
+          for env_var_name, value in coalesce(service.environment, var.environment_variables):
+          { name = env_var_name, value = value }
+        ]
+        secrets = [
+          for service_secret, secret_info in local.service_secrets[item_name]: {
+            name = secret_info.env_var_name,
+            valueFrom = data.aws_secretsmanager_secret.services[service_secret].arn
+          }
+        ]
+        logConfiguration = {
+          logDriver = "awslogs"
+          options = {
+            "awslogs-group" = aws_cloudwatch_log_group.main[var.group_logs ? "__all__" : item_name].name
+            "awslogs-region" = data.aws_region.current.name
+            "awslogs-stream-prefix" = "ecs"
+          }
         }
-      ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          "awslogs-group" = aws_cloudwatch_log_group.main[var.group_logs ? "__all__" : item_name].name
-          "awslogs-region" = data.aws_region.current.name
-          "awslogs-stream-prefix" = "ecs"
-        }
-      }
-    },
-
-    # Dynamic ports
-    {
-      portMappings = [for port_map in [
-        # HTTP port, if service exposes HTTP
-        service.http == null ? null : {
-          protocol = "tcp"
-          containerPort = service.http.port
-          hostPort = service.is_fargate ? service.http.port : 0
-        },
-
-        # TCP port, if service exposes TCP (not HTTP)
-        service.tcp == null ? null : {
-          protocol = "tcp"
-          containerPort = coalesce(
-            service.tcp.container_port,
-            service.tcp.port,
-          )
-          hostPort = service.is_fargate ? coalesce(
-            service.tcp.container_port,
-            service.tcp.port,
-          ) : 0
-        },
-      ]: port_map if port_map != null]
-    },
-
-    # Link containers to others they need
-    # https://docs.docker.com/network/links/
-    service.links == null ? {} : {
-      links = [for link in service.links: "${link}:${link}"]
-    },
-
-    # Append a command only if it's set
-    service.command == null ? {} : {
-      command = service.command
-    })
-  ])
+        portMappings = [for port_map in [
+          service.http == null ? null : {  # HTTP port, if any
+            protocol = "tcp"
+            containerPort = service.http.port
+            hostPort = service.is_fargate ? service.http.port : 0
+          },
+          service.tcp == null ? null : {  # TCP port, if any
+            protocol = "tcp"
+            containerPort = coalesce(
+              service.tcp.container_port,
+              service.tcp.port,
+            )
+            hostPort = service.is_fargate ? coalesce(
+              service.tcp.container_port,
+              service.tcp.port,
+            ) : 0
+          },
+        ]: port_map if port_map != null],
+      },
+    ]
+  ]))
 }
 
 resource "aws_ecs_service" "main" {
