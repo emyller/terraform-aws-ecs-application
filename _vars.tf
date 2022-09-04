@@ -109,6 +109,11 @@ variable "services" {
       field = string
     }))
     mount_files = optional(map(string))
+    efs_mounts = optional(map(object({
+      file_system_id = string
+      root_directory = string
+      mount_path = string
+    })))
   }))
 
   validation {

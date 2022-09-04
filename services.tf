@@ -72,6 +72,29 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
     name = "file-mounter"
   }
 
+  dynamic volume {
+    for_each = {
+      for item in flatten([
+        for container in values(each.value.containers): [
+          for volume_name, volume in container.efs_mounts: {
+            container_name = container.name
+            volume_name = volume_name
+            volume = volume
+          }
+        ]
+      ]):
+      ("${item.container_name}-${item.volume_name}") => item
+    }
+    content {
+      name = volume.key
+
+      efs_volume_configuration {
+        file_system_id = volume.value.volume.file_system_id
+        root_directory = volume.value.volume.root_directory
+      }
+    }
+  }
+
   container_definitions = jsonencode(flatten([
     for item_name, service in each.value.containers: [
       {  # Main (essential) container
@@ -124,10 +147,20 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
             containerName = "file-mounter"
           }],
         )
-        mountPoints = [{  # Load mounted files, if any
-          containerPath = "/mnt"
-          sourceVolume = "file-mounter"
-        }]
+        mountPoints = concat(
+          [  # Load mounted files, if any
+            {
+              containerPath = "/mnt"
+              sourceVolume = "file-mounter"
+            },
+          ],
+          [  # EFS mounts
+            for volume_name, volume in service.efs_mounts:
+            {
+              containerPath = volume.mount_path
+              sourceVolume = "${service.name}-${volume_name}"
+            }
+          ])
       },
 
       # Side container to create and mount files
