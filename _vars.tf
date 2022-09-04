@@ -72,6 +72,7 @@ variable "services" {
     memory = number
     cpu_units = optional(number)
     launch_type = optional(string)
+    is_spot = optional(bool)
     command = optional(list(string))
     environment = optional(map(string))
     secrets = optional(map(string))

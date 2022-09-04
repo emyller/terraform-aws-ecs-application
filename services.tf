@@ -13,6 +13,7 @@ locals {
         for container in values(local.services):
         coalesce(container.launch_type, "EC2")
       ])) == "FARGATE"
+      is_spot = alltrue(values(local.services)[*].is_spot)
     }
   } : {
     # Each container to each service
@@ -22,6 +23,7 @@ locals {
       family_name = "${local.common_name}-${service.name}"
       containers = { (item_name) = service }
       is_fargate = service.is_fargate
+      is_spot = service.is_spot
     }
   })
 }
@@ -152,7 +154,6 @@ resource "aws_ecs_service" "main" {
   name = each.value.name
   cluster = data.aws_ecs_cluster.main.id
   task_definition = "${aws_ecs_task_definition.main[each.key].family}:${aws_ecs_task_definition.main[each.key].revision}"
-  launch_type = each.value.is_fargate ? "FARGATE" : "EC2"
   scheduling_strategy = "REPLICA"
   force_new_deployment = true
   deployment_minimum_healthy_percent = 50
@@ -168,6 +169,18 @@ resource "aws_ecs_service" "main" {
     ? max(180, compact([for service in values(each.value.containers): try(service.http.health_check.grace_period_seconds, 0)])...)
     : null  # No HTTP service
   )
+
+  # Launch with EC2
+  launch_type = each.value.is_fargate ? null : "EC2"
+
+  # Launch with Fargate
+  dynamic capacity_provider_strategy {
+    for_each = each.value.is_fargate ? [true] : []
+    content {
+      capacity_provider = each.value.is_spot ? "FARGATE_SPOT" : "FARGATE"
+      weight = 1
+    }
+  }
 
   dynamic "network_configuration" {
     for_each = each.value.is_fargate ? [true] : []
