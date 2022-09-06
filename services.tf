@@ -200,9 +200,7 @@ resource "aws_ecs_service" "main" {
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent = 200
   enable_execute_command = true
-
-  # When grouping containers in a single service, desired count needs to be 1
-  desired_count = var.group_containers ? 1 : one(values(each.value.containers)).desired_count
+  desired_count = each.value.auto_scaling.min_instances
 
   # Allow HTTP services to warm up before responding to health checks
   health_check_grace_period_seconds = (

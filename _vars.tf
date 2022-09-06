@@ -68,7 +68,7 @@ variable "log_retention_days" {
 variable "services" {
   description = "A mapping of services to deploy in the cluster."
   type = map(object({
-    desired_count = number
+    desired_count = optional(number)
     memory = number
     cpu_units = optional(number)
     launch_type = optional(string)
