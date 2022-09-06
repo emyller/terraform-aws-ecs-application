@@ -114,6 +114,12 @@ variable "services" {
       root_directory = string
       mount_path = string
     })))
+    auto_scaling = optional(object({
+      min_instances = number
+      max_instances = number
+      cpu_threshold = number
+      memory_threshold = number
+    }))
   }))
 
   validation {

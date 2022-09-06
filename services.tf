@@ -14,6 +14,13 @@ locals {
         coalesce(container.launch_type, "EC2")
       ])) == "FARGATE"
       is_spot = alltrue(values(local.services)[*].is_spot)
+      auto_scaling = {
+        enabled = false
+        min_instances = 1
+        max_instances = 1  # Completely disable for grouped services
+        cpu_threshold = 50
+        memory_threshold = 50
+      }
     }
   } : {
     # Each container to each service
@@ -24,6 +31,7 @@ locals {
       containers = { (item_name) = service }
       is_fargate = service.is_fargate
       is_spot = service.is_spot
+      auto_scaling = service.auto_scaling
     }
   })
 }
@@ -276,5 +284,11 @@ resource "aws_ecs_service" "main" {
         target_service.value.tcp.port,
       )
     }
+  }
+
+  lifecycle {
+    ignore_changes = [
+      desired_count,  # Auto scaling will handle it
+    ]
   }
 }
