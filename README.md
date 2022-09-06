@@ -18,7 +18,6 @@ module "application" {
   services = {
     "app" = {  # EC2 example
       memory = 512
-      desired_count = 1
       command = ["cat", "/mnt/my-configuration"]
       docker = {
         image_name = "acme-app"
@@ -43,17 +42,38 @@ module "application" {
       mount_files = {
         "my-configuration" = "aGVsbG8gPSAid29ybGQiCg=="
       }
+      efs_mounts = {
+        "user-uploads": {
+          file_system_id = module.user_uploads_file_system.id
+          root_directory = "/"
+          mount_path = "/app/uploads"
+        }
+      }
+      auto_scaling = {
+        min_instances = 1
+        max_instances = 10
+        cpu_threshold = 60
+        memory_threshold = 80
+      }
     }
     "worker" = {  # Fargate example
       memory = 1024
       cpu_units = 256
       launch_type = "FARGATE"
+      is_spot = true
       desired_count = 2
       command = ["run-worker", "--some-option"]
       docker = {
         image_name = "acme-app"
         image_tag = "main"
         source = "ecr"
+      }
+      efs_mounts = {
+        "user-uploads": {
+          file_system_id = module.user_uploads_file_system.id
+          root_directory = "/"
+          mount_path = "/app/uploads"
+        }
       }
     }
   }
