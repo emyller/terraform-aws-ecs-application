@@ -26,8 +26,8 @@ locals {
       )
       auto_scaling = {
         enabled = item.auto_scaling != null
-        min_instances = try(item.auto_scaling.min_instances, 1)
-        max_instances = try(item.auto_scaling.max_instances, 1)
+        min_instances = coalesce(try(item.auto_scaling.min_instances, null), item.desired_count, 1)
+        max_instances = coalesce(try(item.auto_scaling.max_instances, null), item.desired_count, 1)
         cpu_threshold = try(item.auto_scaling.cpu_threshold, 80)
         memory_threshold = try(item.auto_scaling.memory_threshold, 80)
       }
