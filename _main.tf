@@ -20,6 +20,7 @@ locals {
       full_name = "services/${name}"
       is_fargate = item.launch_type == "FARGATE"
       is_spot = coalesce(item.is_spot, false)
+      efs_mounts = coalesce(item.efs_mounts, {})
     })
   }
 
