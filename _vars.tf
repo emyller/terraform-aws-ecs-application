@@ -117,8 +117,8 @@ variable "services" {
     auto_scaling = optional(object({
       min_instances = number
       max_instances = number
-      cpu_threshold = number
-      memory_threshold = number
+      cpu_threshold = optional(number)
+      memory_threshold = optional(number)
     }))
   }))
 
