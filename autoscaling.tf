@@ -2,6 +2,7 @@ resource "aws_appautoscaling_target" "main" {
   /*
   Auto scaling target for the ECS services
   */
+  depends_on = [aws_ecs_service.main]
   for_each = local.grouped_services
 
   resource_id = "service/${var.application_name}/${each.value.name}"
@@ -15,6 +16,7 @@ resource "aws_appautoscaling_policy" "cpu" {
   /*
   Scale services based on CPU use
   */
+  depends_on = [aws_ecs_service.main]
   for_each = {
     for name, service in local.grouped_services:
     (name) => service
