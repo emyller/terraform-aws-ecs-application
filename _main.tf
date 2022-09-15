@@ -24,6 +24,7 @@ locals {
         item.desired_count,
         try(item.auto_scaling.min_instances, 1),
       )
+      efs_mounts = coalesce(item.efs_mounts, {})
       auto_scaling = {
         enabled = item.auto_scaling != null
         min_instances = coalesce(try(item.auto_scaling.min_instances, null), item.desired_count, 1)
