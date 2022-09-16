@@ -5,7 +5,7 @@ resource "aws_appautoscaling_target" "main" {
   depends_on = [aws_ecs_service.main]
   for_each = local.grouped_services
 
-  resource_id = "service/${var.application_name}/${each.value.name}"
+  resource_id = "service/${var.cluster_name}/${each.value.name}"
   min_capacity = each.value.auto_scaling.min_instances
   max_capacity = each.value.auto_scaling.max_instances
   scalable_dimension = "ecs:service:DesiredCount"
