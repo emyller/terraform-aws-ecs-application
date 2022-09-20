@@ -86,7 +86,7 @@ variable "services" {
       port = number
       load_balancer_name = string
       listener_rule = object({
-        hostnames = list(string)
+        hostnames = optional(list(string))
         paths = optional(list(string))
         headers = optional(map(list(string)))
         methods = optional(list(string))

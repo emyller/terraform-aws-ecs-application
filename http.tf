@@ -72,8 +72,11 @@ resource "aws_lb_listener_rule" "main" {
   }
 
   # Match hostnames
-  condition {
-    host_header { values = each.value.http.listener_rule.hostnames }
+  dynamic "condition" {
+    for_each = each.value.http.listener_rule.hostnames == null ? [] : [true]
+    content {
+      host_header { values = each.value.http.listener_rule.hostnames }
+    }
   }
 
   # Match path patterns
