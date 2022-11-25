@@ -25,13 +25,10 @@ data "aws_iam_policy_document" "event_dispatch" {
   # Allow EventBridge to run a task
   statement {
     actions = ["ecs:RunTask"]
-    resources = concat([
-      for task_name in keys(local.scheduled_tasks):
-      replace(aws_ecs_task_definition.scheduled_tasks[task_name].arn, "/:\\d+$/", ":*")
-    ], [
-      for task_name in keys(local.reactive_tasks):
-      replace(aws_ecs_task_definition.reactive_tasks[task_name].arn, "/:\\d+$/", ":*")
-    ])
+    resources = [
+      "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:task-definition/${local.common_name}",  # Grouped services
+      "arn:aws:ecs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:task-definition/${local.common_name}-*",  # Separated services
+    ]
   }
 
   # Let EventBridge pass assign an IAM role to the task
