@@ -68,8 +68,15 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
     }
   }
 
-  volume {
-    name = "file-mounter"
+  # Create a volume to mount container files if any needs
+  dynamic "volume" {
+    for_each = anytrue([
+      for service in values(each.value.containers):
+      service.mount_files != null
+    ]) ? [true] : []
+    content {
+      name = "file-mounter"
+    }
   }
 
   dynamic volume {
@@ -140,7 +147,7 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
             ) : 0
           },
         ]: port_map if port_map != null]
-        dependsOn = flatten(
+        dependsOn = concat(
           # Wait for file mounter
           service.mount_files == null ? [] : [{
             condition = "COMPLETE"
@@ -148,7 +155,7 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
           }],
         )
         mountPoints = concat(
-          [  # Load mounted files, if any
+          service.mount_files == null ? [] : [  # Load mounted files, if any
             {
               containerPath = "/mnt"
               sourceVolume = "file-mounter"
