@@ -1,4 +1,4 @@
-# dev
+# 3.7.0
 - Prevent too large IAM policy for running tasks
 - Prevent creating unused volume to mount container files
 
