@@ -2,6 +2,9 @@ terraform {
   experiments = [module_variable_optional_attrs]
 }
 
+data "aws_caller_identity" "current" {
+}
+
 data "aws_region" "current" {
 }
 
@@ -24,7 +27,6 @@ locals {
         item.desired_count,
         try(item.auto_scaling.min_instances, 1),
       )
-      efs_mounts = coalesce(item.efs_mounts, {})
       auto_scaling = {
         enabled = item.auto_scaling != null
         min_instances = coalesce(try(item.auto_scaling.min_instances, null), item.desired_count, 1)
@@ -32,6 +34,7 @@ locals {
         cpu_threshold = try(item.auto_scaling.cpu_threshold, 80)
         memory_threshold = try(item.auto_scaling.memory_threshold, 80)
       }
+      efs_mounts = coalesce(item.efs_mounts, {})
     })
   }
 
