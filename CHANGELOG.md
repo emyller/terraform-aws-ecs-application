@@ -1,3 +1,4 @@
+# 3.8.0
 - Preserve client IP address in TCP target groups
 
 # 3.7.0
