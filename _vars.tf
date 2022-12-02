@@ -103,6 +103,7 @@ variable "services" {
       port = number
       container_port = optional(number)
       load_balancer_name = string
+      preserve_client_ip = optional(bool)
     }))
     placement_strategy = optional(object({
       type = string

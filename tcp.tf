@@ -31,6 +31,7 @@ resource "aws_lb_target_group" "tcp" {
   deregistration_delay = 30
   protocol = "TCP"
   target_type = each.value.is_fargate ? "ip" : "instance"
+  preserve_client_ip = coalesce(each.value.tcp.preserve_client_ip, false)
 
   health_check {
     interval = 30
