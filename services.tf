@@ -158,9 +158,17 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
         dependsOn = concat(
           # Wait for file mounter
           service.mount_files == null ? [] : [{
-            condition = "COMPLETE"
             containerName = "file-mounter"
+            condition = "COMPLETE"
           }],
+
+          # Wait for explicit dependencies
+          service.depends_on == null ? [] : [
+            for name, state in service.depends_on: {
+              containerName = name
+              condition = state
+            }
+          ]
         )
         mountPoints = concat(
           service.mount_files == null ? [] : [  # Load mounted files, if any
