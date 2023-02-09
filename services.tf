@@ -155,6 +155,15 @@ resource "aws_ecs_task_definition" "main" {  # TODO: Rename to "services"
             ) : 0
           },
         ]: port_map if port_map != null]
+
+        healthCheck = service.health_check == null ? null : {
+          command = service.health_check.command
+          interval = service.health_check.interval
+          timeout = service.health_check.timeout
+          retries = service.health_check.retries
+          startPeriod = service.health_check.start_period
+        }
+
         dependsOn = concat(
           # Wait for file mounter
           service.mount_files == null ? [] : [{
