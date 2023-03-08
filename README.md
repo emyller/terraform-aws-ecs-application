@@ -15,6 +15,10 @@ module "application" {
   cluster_name = "production-web"  # See the ecs-cluster module
   subnets = data.aws_subnet_ids.private.ids
 
+  # Shut down at night — from 11 pm to 7 am PST
+  scheduled_start = "cron(0 15 ? * MON-FRI *)"
+  scheduled_shutdown = "cron(0 7 ? * TUE-SAT *)"
+
   services = {
     "app" = {  # EC2 example
       memory = 512
@@ -55,6 +59,9 @@ module "application" {
         cpu_threshold = 60
         memory_threshold = 80
       }
+      depends_on = {
+        "redis": "HEALTHY",
+      }
     }
     "worker" = {  # Fargate example
       memory = 1024
@@ -74,6 +81,29 @@ module "application" {
           root_directory = "/"
           mount_path = "/app/uploads"
         }
+      }
+      depends_on = {
+        "redis": "HEALTHY",
+      }
+    }
+    "redis" = {
+      desired_count = 1
+      cpu_units = 256
+      memory = 256
+      docker = {
+        image_name = "redis"
+        image_tag = "6-alpine"
+        source = "dockerhub"
+      }
+      environment = {}
+      secrets = {}
+      launch_type = "FARGATE"
+      health_check = {
+        command = ["redis-cli", "ping"]
+        start_period = 10
+        interval = 5
+        retries = 10
+        timeout = 5
       }
     }
   }
