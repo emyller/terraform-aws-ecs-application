@@ -62,3 +62,21 @@ resource "aws_appautoscaling_policy" "memory" {
     }
   }
 }
+
+resource "aws_appautoscaling_scheduled_action" "shutdown" {
+  /*
+  Scheduled shutdown of services
+  */
+  for_each = (var.scheduled_shutdown != null ? local.grouped_services : {})
+
+  name = "ecs"
+  service_namespace = aws_appautoscaling_target.main[each.key].service_namespace
+  scalable_dimension = aws_appautoscaling_target.main[each.key].scalable_dimension
+  resource_id = aws_appautoscaling_target.main[each.key].resource_id
+  schedule = var.scheduled_shutdown
+
+  scalable_target_action {
+    min_capacity = 0
+    max_capacity = 0
+  }
+}

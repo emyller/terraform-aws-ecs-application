@@ -141,6 +141,12 @@ variable "services" {
   default = {}
 }
 
+variable "scheduled_shutdown" {
+  description = "A time expression to automate shutting down the application containers."
+  type = string
+  default = null
+}
+
 variable "scheduled_tasks" {
   description = "A mapping of scheduled tasks to deploy in the cluster."
   type = map(object({
