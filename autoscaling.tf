@@ -80,3 +80,21 @@ resource "aws_appautoscaling_scheduled_action" "shutdown" {
     max_capacity = 0
   }
 }
+
+resource "aws_appautoscaling_scheduled_action" "start" {
+  /*
+  Scheduled start of services
+  */
+  for_each = (var.scheduled_start != null ? local.grouped_services : {})
+
+  name = "ecs"
+  service_namespace = aws_appautoscaling_target.main[each.key].service_namespace
+  scalable_dimension = aws_appautoscaling_target.main[each.key].scalable_dimension
+  resource_id = aws_appautoscaling_target.main[each.key].resource_id
+  schedule = var.scheduled_start
+
+  scalable_target_action {
+    min_capacity = 1
+    max_capacity = 1
+  }
+}
