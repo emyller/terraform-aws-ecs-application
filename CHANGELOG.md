@@ -1,5 +1,9 @@
 # 4.x series
 
+# 4.3.0
+- Allow configuration of dependencies across services
+- Allow turning applications on and off at scheduled times
+
 # 4.2.0
 - Prevent too large IAM policy for running tasks
 - Prevent creating unused volume to mount container files
