@@ -77,6 +77,14 @@ variable "services" {
     environment = optional(map(string))
     secrets = optional(map(string))
     links = optional(list(string))
+    depends_on = optional(map(string))
+    health_check = optional(object({
+      command = list(string)
+      interval = number
+      timeout = number
+      retries = number
+      start_period = number
+    }))
     docker = object({
       image_name = string
       image_tag = string
