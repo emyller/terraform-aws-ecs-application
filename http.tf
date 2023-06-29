@@ -42,11 +42,14 @@ resource "aws_lb_target_group" "http" {
   */
   for_each = local.http_services
   vpc_id = local.vpc_id
-  name = local.target_group_names[each.key]
   port = each.value.http.port
   deregistration_delay = 30
   protocol = "HTTP"
   target_type = each.value.is_fargate ? "ip" : "instance"
+
+  tags = {
+    Name = local.target_group_names[each.key]
+  }
 
   health_check {
     interval = 30
@@ -55,6 +58,10 @@ resource "aws_lb_target_group" "http" {
     healthy_threshold = 2
     port = each.value.is_fargate ? each.value.http.port : "traffic-port"
     matcher = join(",", each.value.http.health_check.status_codes)
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
