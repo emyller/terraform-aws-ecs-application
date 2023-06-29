@@ -133,9 +133,9 @@ variable "services" {
   validation {
     condition = length(setsubtract(
       values(var.services)[*].docker.source,
-      ["dockerhub", "ecr"],
+      ["dockerhub", "ecr", "public-ecr"],
     )) == 0
-    error_message = "The 'var.services[*].docker.source' must be one of: [dockerhub, ecr]."
+    error_message = "The 'var.services[*].docker.source' must be one of: [dockerhub, ecr, public-ecr]."
   }
 
   default = {}

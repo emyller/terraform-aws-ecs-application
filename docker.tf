@@ -8,11 +8,12 @@ locals {
 
   # Map of service name to their Docker image address
   docker_image_addresses = {
+    # TODO: Try not to be smart and just receive a Docker image address
     for item_name, item in local.runnables:
     item_name => {
-      "dockerhub" = "docker.io/${item.docker.image_name}"
-      "public-ecr" = "public.ecr.aws/${item.docker.image_name}"
-      "ecr" = try(data.aws_ecr_repository.services[item_name].repository_url, null)
+      "dockerhub" = "docker.io/${item.docker.image_name}"  # Docker Hub
+      "public-ecr" = "public.ecr.aws/${item.docker.image_name}"  # AWS' public ECR
+      "ecr" = try(data.aws_ecr_repository.services[item_name].repository_url, null)  # AWS' private ECR
     }[item.docker.source]
   }
 }
