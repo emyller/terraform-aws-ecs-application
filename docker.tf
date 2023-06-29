@@ -11,7 +11,7 @@ locals {
     for item_name, item in local.runnables:
     item_name => {
       "dockerhub" = "docker.io/${item.docker.image_name}"
-      "public-ecr" = "public.ecr.aws/docker/library/${item.docker.image_name}"
+      "public-ecr" = "public.ecr.aws/${item.docker.image_name}"
       "ecr" = try(data.aws_ecr_repository.services[item_name].repository_url, null)
     }[item.docker.source]
   }
